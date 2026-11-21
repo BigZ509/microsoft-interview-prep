@@ -1,0 +1,117 @@
+'use client';
+
+import Link from 'next/link';
+import { getProblem } from '@/content/problems';
+import { getLesson } from '@/content/modules';
+import { getDrill } from '@/content/drills';
+import { scenarios } from '@/content/patterns';
+import { problems } from '@/content/problems';
+import { formatDate } from '@/lib/dates';
+import { isMastered, problemRecord, recoveredItems, type ReviewItem } from '@/lib/progress';
+import { getTerm } from '@/content/glossary';
+import { reviewQueuesFor, weakAreasFor } from '@/lib/insights';
+import { update, useHydrated, useProgress, useToday } from '@/lib/store';
+import { updateProblemFields } from '@/lib/progress';
+import { ProblemItem } from './problem-ui';
+
+export function ReviewList({ problems: probs, concepts }: { problems: Extract<ReviewItem, { kind: 'problem' }>[]; concepts: ReviewItem[] }) {
+  if (!probs.length && !concepts.length) return <p className="small muted">Nothing is due. Problems you solve with help, attempt, or mark Needs Review will appear here on their review date.</p>;
+  return (
+    <ul className="item-list">
+      {probs.map((r) => {
+        const p = getProblem(r.id)!;
+        return (
+          <li key={`p${r.id}`} className="item">
+            <div><Link className="title" href={`/tracker/${p.id}`}>{p.id}. {p.title}</Link><div className="tiny muted">{r.reason} · due {formatDate(r.due)}</div></div>
+            <span className="badge warn">Problem</span>
+          </li>
+        );
+      })}
+      {concepts.map((c) => {
+        if (c.kind === 'lesson') {
+          const ref = getLesson(c.key);
+          return ref && <li key={`l${c.key}`} className="item"><div><Link href={`/learn/${c.key}`}>{ref.lesson.title}</Link><div className="tiny muted">{c.reason}</div></div><span className="badge">Lesson</span></li>;
+        }
+        if (c.kind === 'drill') {
+          const d = getDrill(c.id);
+          return d && <li key={`d${c.id}`} className="item"><div><Link href={`/big-o/${c.id}`}>{d.title}</Link><div className="tiny muted">{c.reason}</div></div><span className="badge">Big-O</span></li>;
+        }
+        if (c.kind === 'pattern') {
+          const s = scenarios.find((x) => x.id === c.id);
+          return s && <li key={`s${c.id}`} className="item"><div><Link href={`/patterns#${c.id}`} className="small">{s.wording}</Link><div className="tiny muted">{c.reason}</div></div><span className="badge">Pattern</span></li>;
+        }
+        return null;
+      })}
+    </ul>
+  );
+}
+
+export function ReviewPage() {
+  const today = useToday();
+  const hydrated = useHydrated();
+  const progress = useProgress();
+  if (!today || !hydrated) return <p className="muted">Loading…</p>;
+  const queues = reviewQueuesFor(progress, today);
+  const weak = weakAreasFor(progress);
+  const withHelp = problems.filter((p) => problemRecord(progress, p.id).status === 'with-help');
+  const independent = problems.filter((p) => problemRecord(progress, p.id).status === 'independent');
+  const upcoming = problems.map((p) => ({ p, rec: problemRecord(progress, p.id) })).filter(({ rec }) => rec.status !== 'not-started' && !isMastered(rec));
+  const recovered = recoveredItems(progress);
+  const recoveredLink = (r: (typeof recovered)[number]) => {
+    if (r.kind === 'drill') return { href: `/big-o/${r.id}`, label: getDrill(r.id)?.title ?? r.id, type: 'Big-O' };
+    if (r.kind === 'pattern') return { href: `/patterns#${r.id}`, label: scenarios.find((s) => s.id === r.id)?.wording ?? r.id, type: 'Pattern' };
+    if (r.id.startsWith('term:')) { const t = getTerm(r.id.slice(5)); return { href: `/dictionary/${r.id.slice(5)}`, label: t?.term ?? r.id, type: 'Term' }; }
+    const key = r.id.split(':')[1];
+    return { href: `/learn/${key}#check`, label: getLesson(key)?.lesson.title ?? key, type: 'Lesson check' };
+  };
+
+  return (
+    <>
+      <div className="page-head">
+        <div className="eyebrow">Review</div>
+        <h1>What needs review?</h1>
+        <p>Light spaced repetition: problems solved with help or only attempted come back after 1 day; a first independent solve comes back after 3 days. A problem counts as <strong>mastered</strong> only after you solve it independently on two different days — one completion is not mastery.</p>
+      </div>
+      <div className="grid-2" style={{ alignItems: 'start' }}>
+        <section className="card"><h2>Due now ({queues.problems.length + queues.concepts.length})</h2><ReviewList problems={queues.problems} concepts={queues.concepts} /></section>
+        <section className="card">
+          <h2>Weak concepts</h2>
+          {weak.length === 0 ? <p className="small muted">No evidence of weak areas yet.</p> : (
+            <ul className="item-list">{weak.map((w) => (
+              <li key={w.id} className="item"><div><Link className="title" href={`/learn/${w.id}`}>{w.label}</Link><ul className="tiny muted" style={{ margin: '4px 0 0' }}>{w.reasons.map((r) => <li key={r}>{r}</li>)}</ul></div><span className="badge warn">{w.score}</span></li>
+            ))}</ul>
+          )}
+        </section>
+      </div>
+      <section className="section card">
+        <h2>Recovered — missed before, correct now ({recovered.length})</h2>
+        <p className="small muted">Retrying never erases history: each item keeps how many times you missed it. Revisit any of them again from here.</p>
+        {recovered.length === 0 ? <p className="small muted">Nothing yet.</p> : (
+          <ul className="item-list">{recovered.map((r) => { const l = recoveredLink(r); return (
+            <li key={`${r.kind}${r.id}`} className="item done"><Link href={l.href} className="small">{l.label}</Link><span className="badge">{l.type} · missed {r.misses}×</span></li>
+          ); })}</ul>
+        )}
+      </section>
+      <section className="section card">
+        <h2>Solved with help ({withHelp.length})</h2>
+        <p className="small muted">Tracked separately from independent solves. Mark one for another attempt to put it back in the queue today.</p>
+        <ul className="item-list">{withHelp.map((p) => (
+          <li key={p.id} className="item">
+            <Link className="title" href={`/tracker/${p.id}`}>{p.id}. {p.title}</Link>
+            <button className="btn small" onClick={() => update((pr) => updateProblemFields(pr, p.id, { retry: true }))} disabled={problemRecord(progress, p.id).retry}>{problemRecord(progress, p.id).retry ? 'Queued' : 'Attempt again'}</button>
+          </li>
+        ))}</ul>
+        {withHelp.length === 0 && <p className="small muted">None.</p>}
+      </section>
+      <section className="section card">
+        <h2>Solved independently ({independent.length})</h2>
+        <ul className="item-list">{independent.map((p) => <ProblemItem key={p.id} problem={p} progress={progress} />)}</ul>
+        {independent.length === 0 && <p className="small muted">None yet.</p>}
+      </section>
+      <section className="section card">
+        <h2>Not yet mastered ({upcoming.length})</h2>
+        <ul className="item-list">{upcoming.map(({ p }) => <ProblemItem key={p.id} problem={p} progress={progress} />)}</ul>
+      </section>
+    </>
+  );
+}
