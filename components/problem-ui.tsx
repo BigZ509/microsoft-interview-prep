@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Circle, ExternalLink, RotateCcw } from 'lucide-react';
 import type { Problem } from '@/content/types';
 import { leetCodeUrl } from '@/content/problems';
 import { formatDate, toDateKey } from '@/lib/dates';
@@ -10,6 +10,7 @@ import {
   type ProblemStatus, type Progress,
 } from '@/lib/progress';
 import { update, useToday } from '@/lib/store';
+import { DifficultyBadge } from './ui';
 
 export function statusTone(status: ProblemStatus): string {
   return status === 'independent' ? 'good' : status === 'with-help' ? 'accent' : status === 'needs-review' ? 'bad' : status === 'attempted' ? 'warn' : '';
@@ -17,8 +18,8 @@ export function statusTone(status: ProblemStatus): string {
 
 export function StatusBadge({ progress, id }: { progress: Progress; id: number }) {
   const rec = problemRecord(progress, id);
-  if (isMastered(rec)) return <span className="badge good">Mastered</span>;
-  return <span className={`badge ${statusTone(rec.status)}`}>{STATUS_LABELS[rec.status]}</span>;
+  if (isMastered(rec)) return <span className="status good">Mastered</span>;
+  return <span className={`status ${statusTone(rec.status)}`}>{STATUS_LABELS[rec.status]}</span>;
 }
 
 export function StatusPicker({ id, progress }: { id: number; progress: Progress }) {
@@ -48,27 +49,32 @@ export function LeetCodeLink({ problem, label = 'Open on LeetCode' }: { problem:
   );
 }
 
+/** A compact, fully clickable problem row. The row opens the prep page; the icon opens LeetCode. */
 export function ProblemItem({ problem, progress, showDate = false }: { problem: Problem; progress: Progress; showDate?: boolean }) {
   const rec = problemRecord(progress, problem.id);
   const done = everCompleted(rec);
+  const queued = rec.retry || rec.status === 'needs-review';
   return (
-    <li className={`item${done ? ' done' : ''}`}>
-      <div style={{ minWidth: 0, flex: '1 1 260px' }}>
-        <div className="row" style={{ gap: 8 }}>
-          {done && <CheckCircle2 size={16} className="check-icon" aria-label="Completed" />}
-          <Link href={`/tracker/${problem.id}`} className="title">{problem.id}. {problem.title}</Link>
-          <span className={`badge ${problem.difficulty}`}>{problem.difficulty}</span>
+    <li className={`prob${done ? ' done' : ''}`}>
+      {queued ? <RotateCcw size={17} className="todo-icon" style={{ color: 'var(--bad)' }} aria-label="Queued for review" />
+        : done ? <CheckCircle2 size={18} className="check-icon" aria-label="Completed" />
+        : <Circle size={18} className="todo-icon" aria-label="Not completed" />}
+      <Link href={`/tracker/${problem.id}`} className="prob-main">
+        <span className="prob-title">
+          <span className="prob-name">{problem.id}. {problem.title}</span>
+          <DifficultyBadge difficulty={problem.difficulty} />
           {problem.wave === 'Stretch' && <span className="badge">P1 · optional</span>}
-        </div>
-        <div className="tiny muted" style={{ marginTop: 2 }}>
-          {problem.pattern}{showDate ? ` · ${formatDate(effectiveDate(problem, progress))}` : ''}{rec.reschedule ? ' (rescheduled)' : ''}
-        </div>
-      </div>
-      <div className="row" style={{ gap: 6 }}>
+        </span>
+        <span className="prob-meta" style={{ display: 'block' }}>
+          {problem.pattern}{showDate ? ` · ${formatDate(effectiveDate(problem, progress))}` : ''}{rec.reschedule ? ' · rescheduled' : ''}
+        </span>
+      </Link>
+      <span className="prob-side">
         <StatusBadge progress={progress} id={problem.id} />
-        <Link className="btn small" href={`/tracker/${problem.id}`}>Prep & record</Link>
-        <LeetCodeLink problem={problem} label="LeetCode" />
-      </div>
+        <a className="btn icon ghost" href={leetCodeUrl(problem)} target="_blank" rel="noopener noreferrer" aria-label={`Open ${problem.id}. ${problem.title} on LeetCode`} title="Open on LeetCode">
+          <ExternalLink size={15} aria-hidden="true" />
+        </a>
+      </span>
     </li>
   );
 }

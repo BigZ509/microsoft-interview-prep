@@ -24,7 +24,7 @@ test('learn → vocabulary → pattern → Big-O → solve → record → review
   await page.locator('.choice').nth(1).click();
 
   // 3. Pattern recognition with a reason.
-  await page.goto('/patterns');
+  await page.goto('/patterns#group-digit-perms');
   const sc = page.locator('#group-digit-perms');
   await sc.getByRole('button', { name: 'Backtracking' }).click(); // the keyword trap
   await sc.getByLabel(/Why does this pattern fit/).fill('it says rearrangements so generate permutations');
@@ -58,7 +58,7 @@ test('learn → vocabulary → pattern → Big-O → solve → record → review
   // 7. The missed pattern is queued for review; retrying it keeps the miss history.
   await page.goto('/review');
   await expect(page.locator('section', { hasText: 'Due now' })).toContainText('Group a list of three-digit integers');
-  await page.goto('/patterns');
+  await page.goto('/patterns#group-digit-perms');
   await expect(sc).toContainText('Last: revisit'); // the earlier miss is remembered; the card is ready for a new attempt
   await sc.getByRole('button', { name: 'Hash map' }).click();
   await sc.getByLabel(/Why does this pattern fit/).fill('group by a canonical digit-count key');

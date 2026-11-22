@@ -136,3 +136,59 @@ test.describe('learning tools', () => {
     }
   });
 });
+
+test.describe('navigation and focused exercises', () => {
+  test('mobile drawer opens from the menu button, closes with Escape and on navigation', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'drawer is mobile-only');
+    await page.goto('/');
+    const menu = page.getByRole('button', { name: 'Open navigation' });
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('link', { name: 'LeetCode Tracker' })).toBeHidden();
+    await menu.click();
+    await expect(page.getByRole('link', { name: 'LeetCode Tracker' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('link', { name: 'LeetCode Tracker' })).toBeHidden();
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await page.getByRole('link', { name: 'LeetCode Tracker' }).click();
+    await expect(page).toHaveURL(/\/tracker$/);
+    await expect(page.getByRole('link', { name: 'LeetCode Tracker' })).toBeHidden();
+  });
+
+  test('desktop sidebar marks the active section', async ({ page, isMobile }) => {
+    test.skip(!!isMobile, 'desktop sidebar');
+    await page.goto('/big-o/sum-list');
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('link', { name: 'Big-O Lab' })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute('aria-current', 'page');
+  });
+
+  test('pattern deep link opens exactly that exercise; others stay collapsed', async ({ page }) => {
+    await page.goto('/patterns#count-subarrays-k');
+    await expect(page.locator('#count-subarrays-k .exercise-head')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.exercise-head[aria-expanded="true"]')).toHaveCount(1);
+    await expect(page.locator('#count-subarrays-k')).toContainText('Values can be negative');
+    await page.locator('#list-cycle .exercise-head').click();
+    await expect(page.locator('#list-cycle .exercise-head')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#count-subarrays-k .exercise-head')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('mock session steps through one question at a time and keeps answers', async ({ page }) => {
+    await page.goto('/mock/digit-buckets');
+    await expect(page.getByText('0/10 steps answered').first()).toBeVisible();
+    await page.getByRole('textbox', { name: 'Clarify the problem' }).fill('Group numbers by digit multiset; ask about negatives.');
+    await page.getByRole('button', { name: /Next step/ }).click();
+    await expect(page.getByRole('textbox', { name: 'Inputs and outputs' })).toBeVisible();
+    await expect(page.getByText('1/10 steps answered').first()).toBeVisible();
+    await page.getByRole('button', { name: /Back/ }).click();
+    await expect(page.getByRole('textbox', { name: 'Clarify the problem' })).toHaveValue(/digit multiset/);
+    await page.getByRole('button', { name: 'Reveal talking points' }).click();
+    await expect(page.getByText('Talking points')).toBeVisible();
+  });
+
+  test('lesson table of contents highlights the section being read', async ({ page, isMobile }) => {
+    test.skip(!!isMobile, 'TOC is hidden on small screens');
+    await page.goto('/learn/hashing/canonical-keys#complexity');
+    await expect(page.locator('.lesson-toc a[aria-current="true"]')).toContainText('Time and space complexity');
+  });
+});
+

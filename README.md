@@ -70,11 +70,22 @@ Problems moved during the audit:
 | LC 70 | stays on Nov 29 | Paired with Kadane: both are 1-D DP with a state and a transition. Its recursion prerequisites come on Nov 28. |
 | LC 1200 | stays on Nov 23 | It is a sorted-array problem that uses `sorted()`, taught in `python/builtins` (Nov 23). The sorting algorithms themselves are taught on Nov 27. |
 
+## Design system
+
+All styling lives in `app/globals.css`, organized as tokens → base → layout → components → page sections. Shared markup lives in `components/ui.tsx`.
+
+- **Tokens.** Slate neutrals with one Fluent-style blue accent (`--accent`) and semantic `--good` / `--warn` / `--bad` colors, each with a soft background and a line color. There are full light and dark sets (dark follows `prefers-color-scheme`). Every text/background pair meets WCAG AA (≥ 4.5:1); the ratios were checked when the palette was set.
+- **Scales.** Type uses 12 / 13 / 15 / 16 / 18 / 22 / 28 px. Spacing uses a 4 px base (`--s1`…`--s10`). Radii are 6 / 8 / 12 px plus pills.
+- **Components** (`components/ui.tsx`): `PageHeader`, `Panel` (with a numbered or completed step marker), `ProgressBar`, `Stat`, `DifficultyBadge`, `EmptyState`. Lists use one divided-row style (`.item-list`). Problem rows (`ProblemItem`) are fully clickable, with a single LeetCode icon button. Status pills (`.status`), chips, segmented controls, exercise accordions (`.exercise`), and code frames are shared CSS classes.
+- **Navigation.** The desktop sidebar is fixed and grouped (Today / Study / Practice / Reference); it shows a review-count badge and a countdown/progress card. On screens ≤ 960 px it becomes a drawer: open it with the menu button, close it with Escape, the scrim, or by navigating.
+- **Pages.** The dashboard has a hero with a **Next up** call to action, a six-step stepper that highlights the current step, the step panels in order, and a side rail. Lessons are grouped into three bands (*Understand* / *Implement & analyze* / *Apply*), and the table of contents highlights the section you're reading. Pattern exercises and decoder problems are single-open accordions that support deep links (`/patterns#id`). The Big-O Lab keeps the code pinned beside numbered answer blocks. Mock sessions use a step navigator and a sticky timer bar.
+
 ## Verify
 
 ```bash
 npm run typecheck && npm run lint && npm test   # unit + content tests (runs every lesson's Python sample)
-npm run build && npm run e2e                     # Playwright end-to-end tests (desktop + mobile)
+npm run build && npm run e2e                     # Playwright end-to-end tests (desktop + mobile; 3 workers)
+# On a heavily loaded machine: npx playwright test --workers=1 --timeout=90000
 npm start & npm run smoke -- http://127.0.0.1:3000   # crawls every internal link
 ```
 

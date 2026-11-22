@@ -13,9 +13,11 @@ import { reviewQueuesFor, weakAreasFor } from '@/lib/insights';
 import { update, useHydrated, useProgress, useToday } from '@/lib/store';
 import { updateProblemFields } from '@/lib/progress';
 import { ProblemItem } from './problem-ui';
+import { PageHeader, Panel, Stat } from './ui';
+import { CheckCircle2 } from 'lucide-react';
 
 export function ReviewList({ problems: probs, concepts }: { problems: Extract<ReviewItem, { kind: 'problem' }>[]; concepts: ReviewItem[] }) {
-  if (!probs.length && !concepts.length) return <p className="small muted">Nothing is due. Problems you solve with help, attempt, or mark Needs Review will appear here on their review date.</p>;
+  if (!probs.length && !concepts.length) return <p className="empty">Nothing is due. Problems you solve with help, attempt, or mark Needs Review appear here on their review date.</p>;
   return (
     <ul className="item-list">
       {probs.map((r) => {
@@ -23,22 +25,22 @@ export function ReviewList({ problems: probs, concepts }: { problems: Extract<Re
         return (
           <li key={`p${r.id}`} className="item">
             <div><Link className="title" href={`/tracker/${p.id}`}>{p.id}. {p.title}</Link><div className="tiny muted">{r.reason} · due {formatDate(r.due)}</div></div>
-            <span className="badge warn">Problem</span>
+            <span className="status warn">Problem</span>
           </li>
         );
       })}
       {concepts.map((c) => {
         if (c.kind === 'lesson') {
           const ref = getLesson(c.key);
-          return ref && <li key={`l${c.key}`} className="item"><div><Link href={`/learn/${c.key}`}>{ref.lesson.title}</Link><div className="tiny muted">{c.reason}</div></div><span className="badge">Lesson</span></li>;
+          return ref && <li key={`l${c.key}`} className="item"><div><Link href={`/learn/${c.key}`}>{ref.lesson.title}</Link><div className="tiny muted">{c.reason}</div></div><span className="status">Lesson</span></li>;
         }
         if (c.kind === 'drill') {
           const d = getDrill(c.id);
-          return d && <li key={`d${c.id}`} className="item"><div><Link href={`/big-o/${c.id}`}>{d.title}</Link><div className="tiny muted">{c.reason}</div></div><span className="badge">Big-O</span></li>;
+          return d && <li key={`d${c.id}`} className="item"><div><Link href={`/big-o/${c.id}`}>{d.title}</Link><div className="tiny muted">{c.reason}</div></div><span className="status">Big-O</span></li>;
         }
         if (c.kind === 'pattern') {
           const s = scenarios.find((x) => x.id === c.id);
-          return s && <li key={`s${c.id}`} className="item"><div><Link href={`/patterns#${c.id}`} className="small">{s.wording}</Link><div className="tiny muted">{c.reason}</div></div><span className="badge">Pattern</span></li>;
+          return s && <li key={`s${c.id}`} className="item"><div><Link href={`/patterns#${c.id}`} className="small">{s.wording}</Link><div className="tiny muted">{c.reason}</div></div><span className="status">Pattern</span></li>;
         }
         return null;
       })}
@@ -67,51 +69,53 @@ export function ReviewPage() {
 
   return (
     <>
-      <div className="page-head">
-        <div className="eyebrow">Review</div>
-        <h1>What needs review?</h1>
-        <p>Light spaced repetition: problems solved with help or only attempted come back after 1 day; a first independent solve comes back after 3 days. A problem counts as <strong>mastered</strong> only after you solve it independently on two different days — one completion is not mastery.</p>
+      <PageHeader
+        eyebrow="Review"
+        title="What needs review?"
+        description={<>Light spaced repetition: problems solved with help or only attempted come back after 1 day; a first independent solve comes back after 3 days. A problem counts as <strong>mastered</strong> only after you solve it independently on two different days — one completion is not mastery.</>}
+      />
+      <div className="stats" style={{ marginBottom: 'var(--s5)' }}>
+        <Stat label="Due now" value={queues.problems.length + queues.concepts.length} tone={queues.problems.length + queues.concepts.length ? undefined : 'good'} hint={`${queues.problems.length} problems · ${queues.concepts.length} concepts`} />
+        <Stat label="Solved with help" value={withHelp.length} tone="accent" hint="Not counted toward mastery" />
+        <Stat label="Solved independently" value={independent.length} tone="good" hint={`${problems.filter((p) => isMastered(problemRecord(progress, p.id))).length} mastered`} />
+        <Stat label="Recovered" value={recovered.length} hint="Missed before, correct now" />
       </div>
       <div className="grid-2" style={{ alignItems: 'start' }}>
-        <section className="card"><h2>Due now ({queues.problems.length + queues.concepts.length})</h2><ReviewList problems={queues.problems} concepts={queues.concepts} /></section>
-        <section className="card">
-          <h2>Weak concepts</h2>
-          {weak.length === 0 ? <p className="small muted">No evidence of weak areas yet.</p> : (
+        <Panel title={`Due now (${queues.problems.length + queues.concepts.length})`} flush><ReviewList problems={queues.problems} concepts={queues.concepts} /></Panel>
+        <Panel title="Weak concepts" flush>
+          {weak.length === 0 ? <p className="empty">No evidence of weak areas yet.</p> : (
             <ul className="item-list">{weak.map((w) => (
-              <li key={w.id} className="item"><div><Link className="title" href={`/learn/${w.id}`}>{w.label}</Link><ul className="tiny muted" style={{ margin: '4px 0 0' }}>{w.reasons.map((r) => <li key={r}>{r}</li>)}</ul></div><span className="badge warn">{w.score}</span></li>
+              <li key={w.id} className="item">
+                <div style={{ minWidth: 0, flex: 1 }}><Link className="title" href={`/learn/${w.id}`}>{w.label}</Link><ul className="meta" style={{ margin: '4px 0 0', paddingLeft: 16 }}>{w.reasons.map((r) => <li key={r}>{r}</li>)}</ul></div>
+                <span className="status warn">{w.score}</span>
+              </li>
             ))}</ul>
           )}
-        </section>
+        </Panel>
       </div>
-      <section className="section card">
-        <h2>Recovered — missed before, correct now ({recovered.length})</h2>
-        <p className="small muted">Retrying never erases history: each item keeps how many times you missed it. Revisit any of them again from here.</p>
-        {recovered.length === 0 ? <p className="small muted">Nothing yet.</p> : (
+      <Panel className="section" title={`Recovered — missed before, correct now (${recovered.length})`} action={<span className="tiny muted">Retrying never erases history</span>} flush>
+        {recovered.length === 0 ? <p className="empty">Nothing yet. Items you miss and later answer correctly appear here with their miss count.</p> : (
           <ul className="item-list">{recovered.map((r) => { const l = recoveredLink(r); return (
-            <li key={`${r.kind}${r.id}`} className="item done"><Link href={l.href} className="small">{l.label}</Link><span className="badge">{l.type} · missed {r.misses}×</span></li>
+            <li key={`${r.kind}${r.id}`} className="item"><span className="row" style={{ gap: 10 }}><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /><Link href={l.href} className="small">{l.label}</Link></span><span className="badge">{l.type} · missed {r.misses}×</span></li>
           ); })}</ul>
         )}
-      </section>
-      <section className="section card">
-        <h2>Solved with help ({withHelp.length})</h2>
-        <p className="small muted">Tracked separately from independent solves. Mark one for another attempt to put it back in the queue today.</p>
-        <ul className="item-list">{withHelp.map((p) => (
-          <li key={p.id} className="item">
-            <Link className="title" href={`/tracker/${p.id}`}>{p.id}. {p.title}</Link>
-            <button className="btn small" onClick={() => update((pr) => updateProblemFields(pr, p.id, { retry: true }))} disabled={problemRecord(progress, p.id).retry}>{problemRecord(progress, p.id).retry ? 'Queued' : 'Attempt again'}</button>
-          </li>
-        ))}</ul>
-        {withHelp.length === 0 && <p className="small muted">None.</p>}
-      </section>
-      <section className="section card">
-        <h2>Solved independently ({independent.length})</h2>
-        <ul className="item-list">{independent.map((p) => <ProblemItem key={p.id} problem={p} progress={progress} />)}</ul>
-        {independent.length === 0 && <p className="small muted">None yet.</p>}
-      </section>
-      <section className="section card">
-        <h2>Not yet mastered ({upcoming.length})</h2>
-        <ul className="item-list">{upcoming.map(({ p }) => <ProblemItem key={p.id} problem={p} progress={progress} />)}</ul>
-      </section>
+      </Panel>
+      <Panel className="section" title={`Solved with help (${withHelp.length})`} action={<span className="tiny muted">Mark one for another attempt to queue it today</span>} flush>
+        {withHelp.length === 0 ? <p className="empty">None.</p> : (
+          <ul className="item-list">{withHelp.map((p) => (
+            <li key={p.id} className="item">
+              <Link className="title" href={`/tracker/${p.id}`}>{p.id}. {p.title}</Link>
+              <button className="btn small" onClick={() => update((pr) => updateProblemFields(pr, p.id, { retry: true }))} disabled={problemRecord(progress, p.id).retry}>{problemRecord(progress, p.id).retry ? 'Queued' : 'Attempt again'}</button>
+            </li>
+          ))}</ul>
+        )}
+      </Panel>
+      <Panel className="section" title={`Solved independently (${independent.length})`} flush>
+        {independent.length === 0 ? <p className="empty">None yet.</p> : <ul className="item-list">{independent.map((p) => <ProblemItem key={p.id} problem={p} progress={progress} />)}</ul>}
+      </Panel>
+      <Panel className="section" title={`Not yet mastered (${upcoming.length})`} flush>
+        {upcoming.length === 0 ? <p className="empty">Nothing in progress.</p> : <ul className="item-list">{upcoming.map(({ p }) => <ProblemItem key={p.id} problem={p} progress={progress} />)}</ul>}
+      </Panel>
     </>
   );
 }

@@ -10,6 +10,8 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   fullyParallel: true,
+  // A few workers keep browser start-up reliable on a busy laptop; raise it on faster machines.
+  workers: 3,
   reporter: 'list',
   use: { baseURL: 'http://127.0.0.1:3123', timezoneId: 'America/New_York', launchOptions },
   webServer: { command: 'npx next start --hostname 127.0.0.1 --port 3123', url: 'http://127.0.0.1:3123', reuseExistingServer: true, timeout: 60_000 },

@@ -13,6 +13,7 @@ import { toDateKey } from '@/lib/dates';
 import { Inline } from './rich';
 import { KnowledgeCheck } from './quiz';
 import { ProblemItem } from './problem-ui';
+import { PageHeader, ProgressBar } from './ui';
 
 function matches(term: Term, q: string): boolean {
   if (!q) return true;
@@ -20,48 +21,66 @@ function matches(term: Term, q: string): boolean {
   return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
 }
 
+function TermCard({ t, done }: { t: Term; done: boolean }) {
+  return (
+    <Link href={`/dictionary/${t.id}`} className="card term-card">
+      <span className="spread" style={{ flexWrap: 'nowrap' }}>
+        <h3>{t.term}</h3>
+        {done && <CheckCircle2 size={16} className="check-icon" aria-label="Reviewed" />}
+      </span>
+      <p><Inline text={t.definition} /></p>
+    </Link>
+  );
+}
+
 export function Dictionary() {
   const progress = useProgress();
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<TermCategory | 'All'>('All');
   const list = useMemo(() => glossary.filter((t) => (cat === 'All' || t.category === cat) && matches(t, q)), [q, cat]);
-  const reviewed = glossary.filter((t) => progress.terms[t.id] || progress.checks[`term:${t.id}`]).length;
+  const isDone = (t: Term) => !!(progress.terms[t.id] || progress.checks[`term:${t.id}`]);
+  const reviewed = glossary.filter(isDone).length;
+  const grouped = cat === 'All' && !q;
 
   return (
     <>
-      <div className="page-head">
-        <div className="eyebrow">Interview Dictionary</div>
-        <h1>Decode the Interview Question</h1>
-        <p>{glossary.length} terms you will meet in problem statements. Each entry explains what the wording <em>implies</em>, which approaches it suggests, common misconceptions, typical complexity, a related LeetCode problem, and a quick knowledge check. <strong>Keywords are clues, not guaranteed solutions</strong> — always confirm with the constraints and examples.</p>
-        <p className="small">{reviewed} of {glossary.length} terms reviewed.</p>
-      </div>
-      <div className="card" style={{ marginBottom: 16 }}>
-        <label className="field">
-          Search the dictionary
+      <PageHeader
+        eyebrow="Interview Dictionary"
+        title="Decode the Interview Question"
+        description={<>{glossary.length} terms you will meet in problem statements — what each one means, what the wording suggests, which constraints change the approach, common misconceptions, and a quick check. <strong>Keywords are clues, not guaranteed solutions.</strong></>}
+      >
+        <div className="row" style={{ marginTop: 'var(--s3)', maxWidth: 420 }}>
+          <div style={{ flex: 1 }}><ProgressBar value={reviewed} max={glossary.length} tone="good" label="Terms reviewed" /></div>
+          <span className="small muted">{reviewed}/{glossary.length} reviewed</span>
+        </div>
+      </PageHeader>
+      <div className="toolbar">
+        <label className="field grow">Search
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. contiguous, permutation, amortized…" />
         </label>
-        <div className="chip-group" style={{ marginTop: 10 }} role="group" aria-label="Category">
+        <div className="chip-group" role="group" aria-label="Category">
           {(['All', ...termCategories] as const).map((c) => (
-            <button key={c} className="chip" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>
+            <button key={c} className="chip" aria-pressed={cat === c} onClick={() => setCat(c)}>
+              {c}{c !== 'All' && <span className="muted tiny">{glossary.filter((t) => t.category === c).length}</span>}
+            </button>
           ))}
         </div>
       </div>
-      {list.length === 0 && <p className="muted">No terms match. Try the global search for lessons and problems.</p>}
-      <div className="term-grid">
-        {list.map((t) => {
-          const done = !!(progress.terms[t.id] || progress.checks[`term:${t.id}`]);
-          return (
-            <Link key={t.id} href={`/dictionary/${t.id}`} className="card term-card">
-              <div className="spread">
-                <h3>{t.term}</h3>
-                {done && <CheckCircle2 size={16} className="check-icon" aria-label="Reviewed" />}
-              </div>
-              <div className="tiny muted" style={{ marginBottom: 6 }}>{t.category}</div>
-              <p className="small" style={{ margin: 0 }}><Inline text={t.definition} /></p>
-            </Link>
-          );
-        })}
-      </div>
+      {list.length === 0 && <p className="empty">No terms match. Try the global search for lessons and problems.</p>}
+      {grouped ? termCategories.map((c) => {
+        const terms = glossary.filter((t) => t.category === c);
+        return (
+          <section key={c} aria-label={c}>
+            <div className="cat-head"><h2>{c}</h2><span className="tiny muted">{terms.filter(isDone).length}/{terms.length} reviewed</span></div>
+            <div className="term-grid">{terms.map((t) => <TermCard key={t.id} t={t} done={isDone(t)} />)}</div>
+          </section>
+        );
+      }) : (
+        <>
+          <p className="small muted" style={{ margin: '0 0 var(--s3)' }}>{list.length} term{list.length === 1 ? '' : 's'}</p>
+          <div className="term-grid">{list.map((t) => <TermCard key={t.id} t={t} done={isDone(t)} />)}</div>
+        </>
+      )}
     </>
   );
 }
@@ -72,36 +91,39 @@ export function TermDetail({ id }: { id: string }) {
   const t = getTerm(id)!;
   const problem = getProblem(t.problem);
   const reviewed = progress.terms[t.id];
-  const related = glossary.filter((o) => o.id !== t.id && (o.category === t.category) && o.lessons.some((l) => t.lessons.includes(l))).slice(0, 6);
+  const related = glossary.filter((o) => o.id !== t.id && o.category === t.category && o.lessons.some((l) => t.lessons.includes(l))).slice(0, 6);
 
   return (
     <>
-      <div className="page-head">
-        <div className="eyebrow"><Link href="/dictionary">Interview Dictionary</Link> · {t.category}</div>
-        <h1>{t.term}</h1>
-        {t.aliases?.length ? <p className="small">Also appears as: {t.aliases.map((a) => <span key={a} className="badge" style={{ marginRight: 4 }}>{a}</span>)}</p> : null}
-        <p style={{ fontSize: 17, color: 'var(--ink)' }}><Inline text={t.definition} /></p>
-        <p className="small muted">A keyword is a clue, not a decision. Confirm the approach against the constraints, the input’s properties (sorted? negatives? alphabet size?), and whether you must generate, count, or compare.</p>
-        <button className={`btn small${reviewed ? ' primary' : ''}`} onClick={() => update((p) => markTermReviewed(p, t.id, today))}>
-          <CheckCircle2 size={15} /> {reviewed ? `Reviewed ${reviewed}` : 'Mark as reviewed'}
-        </button>
-      </div>
-      <div className="card">
-        <dl className="facts">
-          <dt>Example</dt><dd><Inline text={t.example} /></dd>
-          <dt>What the wording suggests</dt><dd><Inline text={t.implies} /></dd>
-          <dt>Check before choosing</dt><dd><div className="callout" style={{ margin: 0 }}><Inline text={t.decide} /></div></dd>
-          <dt>Possible approaches</dt><dd><ul style={{ margin: 0 }}>{t.approaches.map((a) => <li key={a}><Inline text={a} /></li>)}</ul></dd>
-          <dt>Common misconception</dt><dd><div className="callout warn" style={{ margin: 0 }}><Inline text={t.misconception} /></div></dd>
-          <dt>Associated data structures</dt><dd>{t.structures.map((s) => <code key={s} style={{ marginRight: 6 }}>{s}</code>)}</dd>
-          <dt>Typical complexity</dt><dd><Inline text={t.complexity} /></dd>
-          <dt>Learn it in depth</dt>
-          <dd>{t.lessons.map((key, i) => {
+      <PageHeader
+        eyebrow={<><Link href="/dictionary">Interview Dictionary</Link> · {t.category}</>}
+        title={t.term}
+        actions={
+          <button className={`btn small${reviewed ? ' primary' : ''}`} onClick={() => update((p) => markTermReviewed(p, t.id, today))}>
+            <CheckCircle2 size={15} /> {reviewed ? `Reviewed ${reviewed}` : 'Mark as reviewed'}
+          </button>
+        }
+      >
+        <p className="term-definition"><Inline text={t.definition} /></p>
+        {t.aliases?.length ? <div className="row small" style={{ marginTop: 'var(--s3)' }}><span className="muted">Also appears as</span>{t.aliases.map((a) => <span key={a} className="badge">{a}</span>)}</div> : null}
+      </PageHeader>
+
+      <div className="fact-grid">
+        <div className="fact"><div className="k">Example</div><Inline text={t.example} /></div>
+        <div className="fact"><div className="k">What the wording suggests</div><Inline text={t.implies} /></div>
+        <div className="fact decide wide"><div className="k">Check before choosing</div><Inline text={t.decide} /><p className="tiny muted" style={{ margin: '8px 0 0' }}>A keyword is a clue, not a decision. Confirm the approach against the constraints, the input’s properties (sorted? negatives? alphabet size?), and whether you must generate, count, or compare.</p></div>
+        <div className="fact"><div className="k">Possible approaches</div><ul>{t.approaches.map((a) => <li key={a}><Inline text={a} /></li>)}</ul></div>
+        <div className="fact warn"><div className="k">Common misconception</div><Inline text={t.misconception} /></div>
+        <div className="fact"><div className="k">Data structures</div><div className="row" style={{ gap: 6 }}>{t.structures.map((s) => <code key={s}>{s}</code>)}</div></div>
+        <div className="fact"><div className="k">Typical complexity</div><Inline text={t.complexity} /></div>
+        <div className="fact wide"><div className="k">Learn it in depth</div>
+          <div className="chip-group">{t.lessons.map((key) => {
             const ref = getLesson(key);
-            return ref ? <span key={key}>{i ? ' · ' : ''}<Link href={`/learn/${key}`}>{ref.lesson.title}</Link></span> : null;
-          })}</dd>
-        </dl>
+            return ref ? <Link key={key} className="chip" href={`/learn/${key}`}>{ref.lesson.title}</Link> : null;
+          })}</div>
+        </div>
       </div>
+
       <section className="section">
         <h2>Knowledge check</h2>
         <KnowledgeCheck check={t.check} storageKey={`term:${t.id}`} />

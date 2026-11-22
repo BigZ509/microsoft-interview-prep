@@ -22,8 +22,8 @@ export function KnowledgeCheck({ check, storageKey, index }: { check: Check; sto
   };
 
   return (
-    <div className="card" style={{ padding: 14 }}>
-      <p style={{ fontWeight: 600 }}>{index !== undefined ? `${index + 1}. ` : ''}<Inline text={check.q} /></p>
+    <div className="card quiz">
+      <p className="quiz-q">{index !== undefined && <span className="qn">Q{index + 1}</span>}<Inline text={check.q} /></p>
       <div className="choices" role="group" aria-label="Answer choices">
         {check.options.map((opt, i) => {
           const cls = submitted ? (i === check.answer ? 'choice correct' : i === picked ? 'choice wrong' : 'choice') : 'choice';
@@ -38,7 +38,7 @@ export function KnowledgeCheck({ check, storageKey, index }: { check: Check; sto
       {submitted ? (
         <div className={`callout ${picked === check.answer ? 'good' : 'bad'}`} role="status">
           <strong>{picked === check.answer ? 'Correct.' : 'Not quite.'}</strong> <Inline text={check.explain} />
-          <div style={{ marginTop: 8 }}><button className="btn small" onClick={() => setPicked(null)}>Try again</button></div>
+          <div style={{ marginTop: 10 }}><button className="btn small" onClick={() => setPicked(null)}>Try again</button></div>
         </div>
       ) : saved ? (
         <p className="tiny muted" style={{ margin: 0 }}>Last attempt: {saved.correct ? 'correct' : 'incorrect'} ({saved.attempts} attempt{saved.attempts === 1 ? '' : 's'}{saved.misses ? `, missed ${saved.misses}× before` : ''})</p>

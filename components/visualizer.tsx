@@ -69,8 +69,8 @@ export function Visualizer({ visual }: { visual: Visual }) {
   if (visual.kind === 'growth') {
     return (
       <div className="viz">
-        <h3>{visual.title}</h3>
-        <GrowthChart />
+        <div className="viz-head"><h3>{visual.title}</h3><span className="tiny muted">Interactive</span></div>
+        <div className="viz-body"><GrowthChart /></div>
       </div>
     );
   }
@@ -185,14 +185,17 @@ export function Visualizer({ visual }: { visual: Visual }) {
 
   return (
     <div className="viz">
-      <div className="spread"><h3 style={{ margin: 0 }}>{visual.title}</h3><span className="tiny muted">Step {i + 1} of {steps.length}</span></div>
-      <div className="viz-stage">{stage}</div>
-      <Vars vars={vars} />
-      <div className="viz-note" aria-live="polite"><Inline text={step.note} /></div>
-      <div className="viz-controls">
-        <button className="btn small" onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0}><ChevronLeft size={15} />Back</button>
-        <button className="btn small primary" onClick={() => setI((x) => Math.min(steps.length - 1, x + 1))} disabled={i === steps.length - 1}>Next<ChevronRight size={15} /></button>
-        <button className="btn small ghost" onClick={() => setI(0)}><RotateCcw size={14} />Restart</button>
+      <div className="viz-head"><h3>{visual.title}</h3><span className="tiny muted">Step {i + 1} of {steps.length}</span></div>
+      <div className="viz-body">
+        <div className="viz-stage">{stage}</div>
+        <Vars vars={vars} />
+        <div className="viz-note" aria-live="polite"><Inline text={step.note} /></div>
+        <div className="viz-controls">
+          <button className="btn small" onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0}><ChevronLeft size={15} />Back</button>
+          <button className="btn small primary" onClick={() => setI((x) => Math.min(steps.length - 1, x + 1))} disabled={i === steps.length - 1}>Next<ChevronRight size={15} /></button>
+          <button className="btn small ghost" onClick={() => setI(0)}><RotateCcw size={14} />Restart</button>
+          <span className="viz-dots" aria-hidden="true">{steps.map((_, k) => <span key={k} className={k <= i ? 'on' : ''} />)}</span>
+        </div>
       </div>
     </div>
   );

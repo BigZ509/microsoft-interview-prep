@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { search, type SearchKind } from '@/lib/search';
+import { PageHeader } from './ui';
 
 const ORDER: SearchKind[] = ['Term', 'Lesson', 'Problem', 'Big-O drill', 'Pattern exercise', 'Decoder', 'Mock interview'];
 
@@ -20,28 +21,24 @@ function SearchInner({ initial }: { initial: string }) {
 
   return (
     <>
-      <div className="page-head">
-        <div className="eyebrow">Search</div>
-        <h1>Search everything</h1>
-        <p>Lessons, dictionary terms, LeetCode problems, Big-O drills, pattern exercises, and mock interviews.</p>
-      </div>
-      <form onSubmit={(e) => { e.preventDefault(); router.replace(`/search?q=${encodeURIComponent(q)}`); }} className="card" role="search">
-        <label className="field">Query
+      <PageHeader eyebrow="Search" title="Search everything" description="Lessons, dictionary terms, LeetCode problems, Big-O drills, pattern exercises, and mock interviews." />
+      <form onSubmit={(e) => { e.preventDefault(); router.replace(`/search?q=${encodeURIComponent(q)}`); }} className="toolbar" role="search">
+        <label className="field grow">Query
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="permutation, sliding window, O(n log n)…" autoFocus />
         </label>
       </form>
       {q && <p className="small muted" style={{ marginTop: 12 }}>{results.length} result{results.length === 1 ? '' : 's'} for “{q}”.</p>}
       {groups.map((g) => (
-        <section key={g.kind} className="section">
-          <h2>{g.kind === 'Term' ? 'Definitions' : `${g.kind}s`}</h2>
+        <section key={g.kind} className="section" style={{ marginTop: 'var(--s6)' }}>
+          <div className="section-title" style={{ marginTop: 0 }}><h2>{g.kind === 'Term' ? 'Definitions' : `${g.kind}s`}</h2><span className="tiny muted">{g.items.length}</span></div>
           <ul className="item-list">
             {g.items.map((r) => (
               <li key={r.href + r.title} className="item">
-                <div style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <Link className="title" href={r.href}>{r.title}</Link>
                   <div className="small muted">{r.subtitle}</div>
                 </div>
-                <span className="badge">{r.kind}</span>
+                <span className="status">{r.kind}</span>
               </li>
             ))}
           </ul>
