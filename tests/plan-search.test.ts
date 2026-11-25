@@ -38,8 +38,10 @@ describe('daily plan', () => {
     expect(a.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([1, 49, 242]);
     expect(a.plannedTarget).toBe(3);
     const nov30 = assignmentsFor('2026-11-30', emptyProgress());
-    expect(nov30.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([98, 200, 733]);
-    expect(nov30.assigned.filter((p) => p.wave === 'Stretch').map((p) => p.id).sort((x, y) => x - y)).toEqual([207, 215, 994]);
+    expect(nov30.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([98, 733]);
+    expect(nov30.assigned.filter((p) => p.wave === 'Stretch').map((p) => p.id).sort((x, y) => x - y)).toEqual([23, 200, 207, 215, 994]);
+    const nov25 = assignmentsFor('2026-11-25', emptyProgress());
+    expect(nov25.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([3, 13, 125, 344]);
   });
 
   it('carries over incomplete earlier problems and honors rescheduling', () => {
@@ -51,13 +53,13 @@ describe('daily plan', () => {
     expect(nov22.plannedTarget).toBe(5); // planned target is preserved
   });
 
-  it('builds the Learn → Vocabulary → Big-O → Pattern → Solve → Review sequence', () => {
+  it('builds the Learn → Vocabulary → Big-O → Pattern → Guided → Independent → Review sequence', () => {
     const { day } = studyDayFor('2026-11-21');
     let p = setLesson(emptyProgress(), day.lessons[0], { done: true }, '2026-11-21');
     p = markTermReviewed(p, day.terms[0], '2026-11-21');
     p = setProblemStatus(p, 49, 'with-help', '2026-11-21');
     const seq = daySequence(day, p, '2026-11-21');
-    expect(seq.map((s) => s.id)).toEqual(['learn', 'vocab', 'bigo', 'pattern', 'solve', 'review']);
+    expect(seq.map((s) => s.id)).toEqual(['learn', 'vocab', 'bigo', 'pattern', 'guided', 'independent', 'review']);
     expect(seq[0]).toMatchObject({ done: 1, total: day.lessons.length });
     expect(seq[1]).toMatchObject({ done: 1, total: day.terms.length });
     expect(seq[4]).toMatchObject({ done: 1, total: 3 });
@@ -69,7 +71,7 @@ describe('global search', () => {
     const results = search('permutation');
     const kinds = new Set(results.map((r) => r.kind));
     expect(results[0]).toMatchObject({ kind: 'Term', href: '/dictionary/permutation' });
-    expect(kinds).toEqual(new Set(['Term', 'Lesson', 'Problem', 'Big-O drill', 'Pattern exercise', 'Decoder', 'Mock interview']));
+    for (const k of ['Term', 'Lesson', 'Problem', 'Big-O drill', 'Pattern exercise', 'Decoder', 'Mock interview'] as const) expect(kinds.has(k), k).toBe(true);
     const hrefs = results.map((r) => r.href);
     expect(hrefs).toContain('/learn/recursion/permutations');
     expect(hrefs).toContain('/tracker/46');

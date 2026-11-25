@@ -4,9 +4,12 @@ import { glossary } from '@/content/glossary';
 import { problems } from '@/content/problems';
 import { drills } from '@/content/drills';
 import { scenarios, decoderProblems } from '@/content/patterns';
-import { mockProblems } from '@/content/mocks';
+import { behavioralPrompts, mockProblems, productPrompts } from '@/content/mocks';
+import { blindItems } from '@/content/blind';
+import { oopChallenges } from '@/content/oop-challenges';
+import { codeReadings } from '@/content/code-reading';
 
-export type SearchKind = 'Term' | 'Lesson' | 'Problem' | 'Big-O drill' | 'Pattern exercise' | 'Decoder' | 'Mock interview';
+export type SearchKind = 'Term' | 'Lesson' | 'Problem' | 'Big-O drill' | 'Pattern exercise' | 'Decoder' | 'Mock interview' | 'Blind assessment' | 'OOP challenge' | 'Code reading' | 'Behavioral' | 'Product';
 
 export type SearchResult = { kind: SearchKind; title: string; subtitle: string; href: string; score: number };
 
@@ -14,6 +17,7 @@ type Doc = { kind: SearchKind; title: string; subtitle: string; href: string; na
 
 const KIND_WEIGHT: Record<SearchKind, number> = {
   Term: 6, Lesson: 5, Problem: 4, 'Big-O drill': 3, 'Pattern exercise': 3, Decoder: 2, 'Mock interview': 2,
+  'OOP challenge': 3, 'Code reading': 2, 'Blind assessment': 1, Behavioral: 1, Product: 1,
 };
 
 function normalize(text: string): string {
@@ -68,6 +72,22 @@ function buildIndex(): Doc[] {
       kind: 'Mock interview', title: m.title, subtitle: m.label ? 'Candidate-reported reconstruction' : 'Guided technical mock', href: `/mock/${m.id}`,
       names: [m.title], body: [m.statement, m.label ?? ''].join(' '),
     });
+  }
+  // Blind assessments: index ONLY the neutral codename and the statement, never the answer.
+  for (const b of blindItems) {
+    docs.push({ kind: 'Blind assessment', title: b.codename, subtitle: 'Unlabeled question — approach hidden', href: `/blind/${b.id}`, names: [b.codename], body: b.statement });
+  }
+  for (const c of oopChallenges) {
+    docs.push({ kind: 'OOP challenge', title: c.title, subtitle: c.concepts.join(' · '), href: `/oop/${c.id}`, names: [c.title], body: [c.brief, c.requirements.join(' '), c.concepts.join(' '), c.evidenceNote ?? ''].join(' ') });
+  }
+  for (const r of codeReadings) {
+    docs.push({ kind: 'Code reading', title: r.title, subtitle: 'Explain a provided function', href: `/code-reading#${r.id}`, names: [r.title], body: [r.model.purpose, r.evidenceNote ?? '', r.code].join(' ') });
+  }
+  for (const b of behavioralPrompts) {
+    docs.push({ kind: 'Behavioral', title: b.prompt, subtitle: b.theme, href: `/mock/behavioral#${b.id}`, names: [], body: [b.tip, b.theme].join(' ') });
+  }
+  for (const p of productPrompts) {
+    docs.push({ kind: 'Product', title: p.prompt, subtitle: `Product · ${p.framework}`, href: `/mock/behavioral#${p.id}`, names: [], body: p.prompt });
   }
   return docs.map((d) => ({ ...d, names: d.names.map(normalize), body: normalize(d.body), title: d.title }));
 }

@@ -328,7 +328,7 @@ assert [heapq.heappop(tasks)[1] for _ in range(3)] == ["deploy", "email", "lunch
         { q: "For k-th largest, why a MIN-heap of size k?", options: ['It is faster to build', 'Its root is the smallest of the k largest — exactly the k-th largest', 'Python has no max-heap', 'To sort the output'], answer: 1, explain: "Anything smaller than the root can't be in the top k." },
         { q: "Top-K with a size-k heap costs…", options: ['O(n log n)', 'O(n log k)', 'O(k log n)', 'O(n)'], answer: 1, explain: "n operations on a heap of size ≤ k." },
       ],
-      problems: [215],
+      problems: [215, 23],
       terms: ['heap', 'priority-queue', 'top-k', 'kth-largest'],
       verbal: "\"I'll keep a min-heap of the k largest elements seen so far; its root is the k-th largest. O(n log k) time, O(k) space — better than sorting when k is small.\"",
     },

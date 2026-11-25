@@ -7,19 +7,32 @@ import { getDrill } from '@/content/drills';
 import { scenarios } from '@/content/patterns';
 import { problems } from '@/content/problems';
 import { formatDate } from '@/lib/dates';
-import { isMastered, problemRecord, recoveredItems, type ReviewItem } from '@/lib/progress';
+import { isMastered, mistakeLog, OUTCOME_LABELS, problemRecord, recoveredItems, type PracticeReviewItem, type ReviewItem } from '@/lib/progress';
 import { getTerm } from '@/content/glossary';
-import { reviewQueuesFor, weakAreasFor } from '@/lib/insights';
+import { practiceInfo, reviewQueuesFor, weakAreasFor } from '@/lib/insights';
 import { update, useHydrated, useProgress, useToday } from '@/lib/store';
 import { updateProblemFields } from '@/lib/progress';
 import { ProblemItem } from './problem-ui';
 import { PageHeader, Panel, Stat } from './ui';
 import { CheckCircle2 } from 'lucide-react';
 
-export function ReviewList({ problems: probs, concepts }: { problems: Extract<ReviewItem, { kind: 'problem' }>[]; concepts: ReviewItem[] }) {
-  if (!probs.length && !concepts.length) return <p className="empty">Nothing is due. Problems you solve with help, attempt, or mark Needs Review appear here on their review date.</p>;
+export function ReviewList({ problems: probs, concepts, practice = [] }: { problems: Extract<ReviewItem, { kind: 'problem' }>[]; concepts: ReviewItem[]; practice?: PracticeReviewItem[] }) {
+  if (!probs.length && !concepts.length && !practice.length) return <p className="empty">Nothing is due. Problems you solve with help, attempt, or mark Needs Review — and blind assessments or OOP challenges that needed hints — appear here on their review date.</p>;
   return (
     <ul className="item-list">
+      {practice.map((r) => {
+        const info = practiceInfo(r.key);
+        return info && (
+          <li key={r.key} className="item">
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <Link className="title" href={info.href}>{info.title}</Link>
+              <div className="tiny muted">{r.reason} · due {formatDate(r.due)}</div>
+              {r.mistake && <div className="tiny" style={{ marginTop: 2 }}>Your note: {r.mistake}</div>}
+            </div>
+            <span className="status warn">{info.kind === 'Blind assessment' ? 'Blind' : info.kind === 'OOP challenge' ? 'OOP' : 'Practice'}</span>
+          </li>
+        );
+      })}
       {probs.map((r) => {
         const p = getProblem(r.id)!;
         return (
@@ -59,6 +72,8 @@ export function ReviewPage() {
   const independent = problems.filter((p) => problemRecord(progress, p.id).status === 'independent');
   const upcoming = problems.map((p) => ({ p, rec: problemRecord(progress, p.id) })).filter(({ rec }) => rec.status !== 'not-started' && !isMastered(rec));
   const recovered = recoveredItems(progress);
+  const mistakes = mistakeLog(progress);
+  const dueTotal = queues.problems.length + queues.concepts.length + queues.practice.length;
   const recoveredLink = (r: (typeof recovered)[number]) => {
     if (r.kind === 'drill') return { href: `/big-o/${r.id}`, label: getDrill(r.id)?.title ?? r.id, type: 'Big-O' };
     if (r.kind === 'pattern') return { href: `/patterns#${r.id}`, label: scenarios.find((s) => s.id === r.id)?.wording ?? r.id, type: 'Pattern' };
@@ -75,13 +90,13 @@ export function ReviewPage() {
         description={<>Light spaced repetition: problems solved with help or only attempted come back after 1 day; a first independent solve comes back after 3 days. A problem counts as <strong>mastered</strong> only after you solve it independently on two different days — one completion is not mastery.</>}
       />
       <div className="stats" style={{ marginBottom: 'var(--s5)' }}>
-        <Stat label="Due now" value={queues.problems.length + queues.concepts.length} tone={queues.problems.length + queues.concepts.length ? undefined : 'good'} hint={`${queues.problems.length} problems · ${queues.concepts.length} concepts`} />
+        <Stat label="Due now" value={dueTotal} tone={dueTotal ? undefined : 'good'} hint={`${queues.problems.length} problems · ${queues.practice.length} practice · ${queues.concepts.length} concepts`} />
         <Stat label="Solved with help" value={withHelp.length} tone="accent" hint="Not counted toward mastery" />
         <Stat label="Solved independently" value={independent.length} tone="good" hint={`${problems.filter((p) => isMastered(problemRecord(progress, p.id))).length} mastered`} />
         <Stat label="Recovered" value={recovered.length} hint="Missed before, correct now" />
       </div>
       <div className="grid-2" style={{ alignItems: 'start' }}>
-        <Panel title={`Due now (${queues.problems.length + queues.concepts.length})`} flush><ReviewList problems={queues.problems} concepts={queues.concepts} /></Panel>
+        <Panel title={`Due now (${dueTotal})`} flush><ReviewList problems={queues.problems} concepts={queues.concepts} practice={queues.practice} /></Panel>
         <Panel title="Weak concepts" flush>
           {weak.length === 0 ? <p className="empty">No evidence of weak areas yet.</p> : (
             <ul className="item-list">{weak.map((w) => (
@@ -93,6 +108,19 @@ export function ReviewPage() {
           )}
         </Panel>
       </div>
+      <Panel id="mistakes" className="section" title={`Mistake log (${mistakes.length})`} action={<span className="tiny muted">Reread this before every mock — it is your personal list of missed signals</span>} flush>
+        {mistakes.length === 0 ? <p className="empty">Empty. When a blind assessment or OOP challenge needs hints, write down the signal you missed; notes on problems marked Needs Review, Attempted or Solved With Help appear here too.</p> : (
+          <ul className="item-list">{mistakes.slice(0, 40).map((m, i) => { const info = practiceInfo(m.key); return (
+            <li key={`${m.key}${m.date}${i}`} className="item">
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="row" style={{ gap: 8 }}>{info ? <Link className="title" href={info.href}>{info.title}</Link> : <span className="title">{m.key}</span>}<span className="tiny muted">{formatDate(m.date)} · {OUTCOME_LABELS[m.outcome]}</span></div>
+                <div className="small" style={{ whiteSpace: 'pre-wrap' }}>{m.mistake}</div>
+              </div>
+              <span className="badge">{info?.kind ?? 'Note'}</span>
+            </li>
+          ); })}</ul>
+        )}
+      </Panel>
       <Panel className="section" title={`Recovered — missed before, correct now (${recovered.length})`} action={<span className="tiny muted">Retrying never erases history</span>} flush>
         {recovered.length === 0 ? <p className="empty">Nothing yet. Items you miss and later answer correctly appear here with their miss count.</p> : (
           <ul className="item-list">{recovered.map((r) => { const l = recoveredLink(r); return (

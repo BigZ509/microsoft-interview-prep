@@ -49,6 +49,22 @@ export type MockSession = {
   completedAt: number | null;
 };
 
+/** How a blind assessment / OOP challenge / code reading went, judged against the reveal. */
+export const PRACTICE_OUTCOMES = ['independent', 'with-hints', 'missed'] as const;
+export type PracticeOutcome = (typeof PRACTICE_OUTCOMES)[number];
+export const OUTCOME_LABELS: Record<PracticeOutcome, string> = {
+  independent: 'Found the approach on my own',
+  'with-hints': 'Needed hints',
+  missed: 'Missed the approach',
+};
+export type PracticeAttempt = { date: string; outcome: PracticeOutcome; hints: number; mistake: string };
+/**
+ * One record per exercise, keyed "blind:<id>", "oop:<id>" or "read:<id>".
+ * `draft`, `hints` and `revealed` describe the attempt in progress; `attempts` is the permanent history.
+ * Starting a retry clears the in-progress fields only, never `attempts`.
+ */
+export type PracticeRecord = { draft: Record<string, string>; hints: number; revealed: boolean; attempts: PracticeAttempt[] };
+
 export type Story = {
   id: string;
   promptId: string;
@@ -69,10 +85,11 @@ export type Progress = {
   mocks: MockSession[];
   stories: Story[];
   projects: Record<string, Record<string, string>>;
+  practice: Record<string, PracticeRecord>;
 };
 
 export function emptyProgress(): Progress {
-  return { version: 1, problems: {}, lessons: {}, checks: {}, drills: {}, patterns: {}, decoder: {}, terms: {}, mocks: [], stories: [], projects: {} };
+  return { version: 1, problems: {}, lessons: {}, checks: {}, drills: {}, patterns: {}, decoder: {}, terms: {}, mocks: [], stories: [], projects: {}, practice: {} };
 }
 
 export function emptyProblemRecord(): ProblemRecord {
@@ -155,7 +172,23 @@ export function normalizeProgress(raw: unknown): Progress {
       if (!isRecord(v)) return null;
       return mapEntries(v, (f) => (typeof f === 'string' ? f.slice(0, 20_000) : null));
     }),
+    // Added Nov 25 (scope correction). Older saves have no `practice` key and load as {}.
+    practice: mapEntries(raw.practice, (v) => {
+      if (!isRecord(v)) return null;
+      const attempts = Array.isArray(v.attempts)
+        ? v.attempts.filter(isRecord).filter((a) => isDateKey(a.date) && isOutcome(a.outcome)).slice(-100)
+            .map((a) => ({ date: a.date as string, outcome: a.outcome as PracticeOutcome, hints: Math.max(0, Math.floor(num(a.hints))), mistake: str(a.mistake, 5_000) }))
+        : [];
+      return {
+        draft: mapEntries(v.draft, (f) => (typeof f === 'string' ? f.slice(0, 20_000) : null)),
+        hints: Math.max(0, Math.floor(num(v.hints))), revealed: bool(v.revealed), attempts,
+      };
+    }),
   };
+}
+
+function isOutcome(value: unknown): value is PracticeOutcome {
+  return typeof value === 'string' && (PRACTICE_OUTCOMES as readonly string[]).includes(value);
 }
 
 export function parseProgress(json: string): Progress {
@@ -290,6 +323,8 @@ export type WeaknessInputs = {
   drillModules: Record<string, string>;
   /** Pattern scenario id → module id of its best pattern. */
   patternModules: Record<string, string>;
+  /** Practice key ("blind:<id>", "oop:<id>") → module id it exercises. */
+  practiceModules?: Record<string, string>;
 };
 
 /** Scores modules by recorded struggles. Higher = weaker. Only modules with evidence are returned. */
@@ -328,6 +363,13 @@ export function weakAreas(progress: Progress, inputs: WeaknessInputs): WeakArea[
   for (const [id, p] of Object.entries(progress.patterns)) {
     const moduleId = inputs.patternModules[id];
     if (moduleId && !p.correct) bump(moduleId, 1, 'Pattern-recognition misses');
+  }
+  for (const [key, rec] of Object.entries(progress.practice)) {
+    const moduleId = inputs.practiceModules?.[key];
+    const last = rec.attempts[rec.attempts.length - 1];
+    if (!moduleId || !last) continue;
+    if (last.outcome === 'missed') bump(moduleId, 2, key.startsWith('oop:') ? 'OOP challenge not completed' : 'Blind assessment: missed the approach');
+    else if (last.outcome === 'with-hints') bump(moduleId, 1, key.startsWith('oop:') ? 'OOP challenge needed help' : 'Blind assessment: needed hints');
   }
   return [...areas.values()].sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
 }
@@ -417,4 +459,102 @@ export function recoveredItems(progress: Progress): RecoveredItem[] {
 
 export function markTermReviewed(progress: Progress, id: string, date: string): Progress {
   return { ...progress, terms: { ...progress.terms, [id]: date } };
+}
+
+// ------------------------------------------------------------------
+// Practice exercises: blind assessments, OOP challenges, code reading
+// ------------------------------------------------------------------
+
+export function emptyPracticeRecord(): PracticeRecord {
+  return { draft: {}, hints: 0, revealed: false, attempts: [] };
+}
+
+export function practiceRecord(progress: Progress, key: string): PracticeRecord {
+  return progress.practice[key] ?? emptyPracticeRecord();
+}
+
+function putPractice(progress: Progress, key: string, rec: PracticeRecord): Progress {
+  return { ...progress, practice: { ...progress.practice, [key]: rec } };
+}
+
+export function setPracticeDraft(progress: Progress, key: string, field: string, value: string): Progress {
+  const prev = practiceRecord(progress, key);
+  return putPractice(progress, key, { ...prev, draft: { ...prev.draft, [field]: value } });
+}
+
+/** Ask the "interviewer" for the next hint. Counted against this attempt. */
+export function takeHint(progress: Progress, key: string, max: number): Progress {
+  const prev = practiceRecord(progress, key);
+  return putPractice(progress, key, { ...prev, hints: Math.min(max, prev.hints + 1) });
+}
+
+export function revealPractice(progress: Progress, key: string): Progress {
+  return putPractice(progress, key, { ...practiceRecord(progress, key), revealed: true });
+}
+
+/** Record the self-assessed outcome of the current attempt. Hints used are stored with it. */
+export function recordPracticeOutcome(progress: Progress, key: string, outcome: PracticeOutcome, mistake: string, date: string): Progress {
+  const prev = practiceRecord(progress, key);
+  // Using a hint means the attempt was not independent, whatever the self-assessment says.
+  const honest: PracticeOutcome = outcome === 'independent' && prev.hints > 0 ? 'with-hints' : outcome;
+  return putPractice(progress, key, { ...prev, revealed: true, attempts: [...prev.attempts, { date, outcome: honest, hints: prev.hints, mistake: mistake.slice(0, 5_000) }] });
+}
+
+/** Start a fresh attempt: clears the draft, hints and reveal; keeps the attempt history. */
+export function restartPractice(progress: Progress, key: string): Progress {
+  const prev = practiceRecord(progress, key);
+  return putPractice(progress, key, { ...prev, draft: {}, hints: 0, revealed: false });
+}
+
+export function lastAttempt(rec: PracticeRecord): PracticeAttempt | undefined {
+  return rec.attempts[rec.attempts.length - 1];
+}
+
+/** Independent attempts on distinct days. Two are needed before an exercise leaves review. */
+export function practiceIndependentDays(rec: PracticeRecord): number {
+  return new Set(rec.attempts.filter((a) => a.outcome === 'independent').map((a) => a.date)).size;
+}
+
+/**
+ * Same spacing as problems: needed hints / missed → due 1 day later; first independent attempt →
+ * due 3 days later; two independent days → retained, not due.
+ */
+export function practiceDue(rec: PracticeRecord): string | null {
+  const last = lastAttempt(rec);
+  if (!last) return null;
+  if (last.outcome !== 'independent') return addDays(last.date, 1);
+  return practiceIndependentDays(rec) >= 2 ? null : addDays(last.date, 3);
+}
+
+export type PracticeReviewItem = { key: string; due: string; reason: string; mistake: string };
+
+export function practiceReviewQueue(progress: Progress, today: string): PracticeReviewItem[] {
+  const out: PracticeReviewItem[] = [];
+  for (const [key, rec] of Object.entries(progress.practice)) {
+    const due = practiceDue(rec);
+    if (!due || due > today) continue;
+    const last = lastAttempt(rec)!;
+    const reason = last.outcome === 'missed' ? 'Missed the approach — retry it cold'
+      : last.outcome === 'with-hints' ? `Needed ${last.hints || 'a'} hint${last.hints === 1 ? '' : 's'} — retry without them`
+      : 'Solved once on your own — confirm on a second day';
+    const mistake = [...rec.attempts].reverse().find((a) => a.mistake.trim())?.mistake ?? '';
+    out.push({ key, due, reason, mistake });
+  }
+  return out.sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : a.key.localeCompare(b.key)));
+}
+
+export type MistakeEntry = { key: string; date: string; outcome: PracticeOutcome; mistake: string };
+
+/** Every written mistake note, newest first — the raw material for mistake review. */
+export function mistakeLog(progress: Progress): MistakeEntry[] {
+  const out: MistakeEntry[] = [];
+  for (const [key, rec] of Object.entries(progress.practice)) {
+    for (const a of rec.attempts) if (a.mistake.trim()) out.push({ key, date: a.date, outcome: a.outcome, mistake: a.mistake });
+  }
+  for (const [id, rec] of Object.entries(progress.problems)) {
+    if (rec.notes.trim() && (rec.status === 'needs-review' || rec.status === 'with-help' || rec.status === 'attempted')) {
+      out.push({ key: `problem:${id}`, date: rec.lastAttempted ?? '1970-01-01', outcome: rec.status === 'attempted' ? 'missed' : 'with-hints', mistake: rec.notes });
+    }
+  }
+  return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.key.localeCompare(b.key)));
 }

@@ -248,6 +248,15 @@ export type DecoderProblem = {
 
 export type ProblemWave = 'First wave' | 'Supporting' | 'Stretch';
 
+/**
+ * Where the evidence for a problem comes from (see sources/colorstack-explore-research.md).
+ * - colorstack-reported: a ColorStack member reported it (or its follow-up) in an Explore interview.
+ * - github-historical: listed in the historical CourtneyThurston/microsoft-internships reports.
+ * - colorstack-recommended: recommended for practice by ColorStack members; not a confirmed question.
+ * All of these are anecdotal, not official Microsoft information.
+ */
+export type Evidence = 'colorstack-reported' | 'github-historical' | 'colorstack-recommended';
+
 export type Problem = {
   id: number;
   title: string;
@@ -271,6 +280,11 @@ export type Problem = {
   /** Short, original hint ladder (no solutions). */
   hints: string[];
   candidateReport?: string;
+  /** 'plan' = imported from the original study-plan file; 'colorstack' = added from the ColorStack research. */
+  origin?: 'plan' | 'colorstack';
+  evidence?: Evidence[];
+  /** Why a plan problem was made optional under the Nov 25 scope correction (secondary topic / advanced). */
+  demoted?: string;
 };
 
 export type StudyDay = {
@@ -284,7 +298,137 @@ export type StudyDay = {
   /** Planned LeetCode problem count from the study plan (first wave + supporting). */
   target: number;
   extras: string[];
+  /** Non-LeetCode practice for the day, sized by the study allocation. */
+  practice?: DayPractice;
 };
+
+export type DayPractice = {
+  /** OOP challenge id (content/oop-challenges.ts). */
+  oop?: string;
+  /** Code-reading exercise ids (content/code-reading.ts). */
+  reading?: string[];
+  /** Behavioral prompt ids (content/mocks.ts). */
+  behavioral?: string[];
+  /** Product/testing prompt id (content/mocks.ts). */
+  product?: string;
+  /** Project id for the résumé explanation drill (content/projects.ts). */
+  project?: string;
+};
+
+// ---------- Blind assessments ----------
+
+/**
+ * An unlabeled coding question. The title, pattern, difficulty and solution stay hidden until the
+ * learner commits to an approach. `statement` must not name the pattern or the data structure.
+ */
+export type BlindItem = {
+  id: string;
+  /** Neutral display name shown before the reveal (e.g. "Seat finder"). */
+  codename: string;
+  statement: string;
+  examples: string[];
+  constraints: string[];
+  /** Date (YYYY-MM-DD) from which the needed concepts have been taught; selection never serves it earlier. */
+  unlock: string;
+  evidence?: Evidence;
+  /** Short evidence note, e.g. "ColorStack-reported: Two Sum follow-up". */
+  evidenceNote?: string;
+  /** Hidden until reveal. */
+  answer: {
+    pattern: string;
+    difficulty: Difficulty;
+    /** The characteristics of the statement that point at the approach. */
+    signals: string[];
+    structure: string;
+    brute: { idea: string; time: string; space: string };
+    bottleneck: string;
+    optimized: { idea: string; time: string; space: string };
+    edgeCases: string[];
+    /** Python reference solution with asserts; run by tests/python-samples.test.ts. */
+    solution: string;
+    /** LeetCode problem this is based on, if any. */
+    problem?: number;
+    /** Lesson keys to revisit if this was missed. */
+    lessons: string[];
+  };
+  /** Interviewer-style nudges, weakest first. Using one is recorded. */
+  hints: string[];
+  /** A follow-up an interviewer might ask after a working solution. */
+  followUp: string;
+};
+
+// ---------- Code reading (comprehension) ----------
+
+export type CodeReading = {
+  id: string;
+  title: string;
+  evidence?: Evidence;
+  evidenceNote?: string;
+  /** Python function to read; must be valid Python and its asserts must pass. */
+  code: string;
+  /** Prompts the learner answers in writing before the reveal. */
+  prompts: string[];
+  model: {
+    purpose: string;
+    inputs: string;
+    outputs: string;
+    edgeCases: string[];
+    complexity: string;
+    /** Bugs or risky behavior an interviewer may want you to spot (may be empty). */
+    issues: string[];
+    /** How to say it in ~30 seconds. */
+    explain: string;
+  };
+};
+
+// ---------- OOP challenges ----------
+
+export type OopChallenge = {
+  id: string;
+  order: number;
+  title: string;
+  evidence?: Evidence;
+  evidenceNote?: string;
+  /** Lesson keys that must be studied first. */
+  prereqs: string[];
+  concepts: string[];
+  brief: string;
+  /** Requirements stated by the source (or by this app for original challenges). */
+  requirements: string[];
+  /** Requirements the app had to infer because the source was incomplete. Shown labeled. */
+  inferred: string[];
+  /** Build it in small steps, each testable. */
+  stages: string[];
+  /** Clarifying questions worth asking before coding. */
+  clarify: string[];
+  /** Python skeleton the learner starts from. */
+  starter: string;
+  /** Reference solution including asserts; run by tests. Hidden until the learner commits. */
+  solution: string;
+  followUps: string[];
+};
+
+// ---------- Résumé projects ----------
+
+export type ProjectBrief = {
+  id: string;
+  name: string;
+  /** Résumé stack line, verbatim. */
+  stack: string;
+  /** Résumé bullets, verbatim (the claims an interviewer will read). */
+  resumeClaims: string[];
+  /** Facts grounded in repository / portfolio evidence, with where they came from. */
+  facts: { text: string; source: string }[];
+  /** Simple boxes-and-arrows: each entry is one box; arrows connect consecutive boxes. */
+  diagram: { label: string; detail: string }[];
+  /** Notes that keep the explanation honest: gaps or mismatches between the résumé and the evidence. */
+  verify: string[];
+  /** The nine explanation fields: guidance text per field (what the evidence supports). */
+  prompts: Record<ProjectPromptId, string>;
+  followUps: string[];
+};
+
+export type ProjectPromptId = 'problem' | 'architecture' | 'dataflow' | 'technologies' | 'contribution' | 'challenge' | 'tradeoff' | 'measurement' | 'improve';
 
 export type Source = {
   title: string;

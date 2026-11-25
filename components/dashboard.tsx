@@ -1,20 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BookOpen, CalendarDays, CheckCircle2, Circle, Clock, Gauge, Puzzle, RotateCcw, Target } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarDays, CheckCircle2, Circle, Clock, EyeOff, Gauge, Puzzle, RotateCcw, Target } from 'lucide-react';
 import { getLesson } from '@/content/modules';
 import { getTerm } from '@/content/glossary';
 import { getDrill } from '@/content/drills';
 import { scenarios } from '@/content/patterns';
-import { INTERVIEW_DATE, PLAN_START, interviewDayChecklist, schedule, studyBlocks } from '@/content/schedule';
+import { INTERVIEW_DATE, PLAN_START, interviewDayChecklist, schedule, studyAllocation } from '@/content/schedule';
+import { getOopChallenge } from '@/content/oop-challenges';
+import { getCodeReading } from '@/content/code-reading';
+import { behavioralPrompts, productPrompts } from '@/content/mocks';
+import { getProject } from '@/content/projects';
 import { problems } from '@/content/problems';
 import { countdown, daysBetween, formatDate } from '@/lib/dates';
-import { assignmentsFor, daySequence, studyDayFor } from '@/lib/plan';
-import { effectiveDate, everCompleted, problemRecord, trackStatus } from '@/lib/progress';
+import { assignmentsFor, blindForDay, daySequence, studyDayFor } from '@/lib/plan';
+import { effectiveDate, everCompleted, practiceRecord, problemRecord, trackStatus } from '@/lib/progress';
 import { reviewQueuesFor, weakAreasFor } from '@/lib/insights';
 import { useHydrated, useProgress, useToday } from '@/lib/store';
 import { ProblemItem } from './problem-ui';
 import { ReviewList } from './review';
+import { practiceStatus } from './blind';
 import { EmptyState, Panel, ProgressBar } from './ui';
 
 export function Dashboard() {
@@ -32,6 +37,10 @@ export function Dashboard() {
   const queues = reviewQueuesFor(progress, today);
   const weak = weakAreasFor(progress).slice(0, 4);
   const stretch = a.assigned.filter((p) => p.wave === 'Stretch');
+  const blind = blindForDay(day.date, progress);
+  const blindDone = (id: string) => practiceRecord(progress, `blind:${id}`).attempts.some((x) => x.date === day.date || x.date === today);
+  const dueTotal = queues.problems.length + queues.practice.length + queues.concepts.length;
+  const practice = day.practice ?? {};
   const stepDone = (id: string) => { const s = seq.find((x) => x.id === id)!; return s.total > 0 && s.done >= s.total; };
   const currentStep = seq.find((s) => s.total > 0 && s.done < s.total)?.id;
 
@@ -41,12 +50,14 @@ export function Dashboard() {
   const nextDrill = day.drills.find((d) => !progress.drills[d]);
   const nextPattern = day.patterns.find((s) => !progress.patterns[s]);
   const nextProblem = a.coreAssigned.find((p) => !everCompleted(problemRecord(progress, p.id)));
+  const nextBlind = blind.find((b) => !blindDone(b.id));
   const next = nextLesson ? { label: 'Lesson', what: getLesson(nextLesson)!.lesson.title, href: `/learn/${nextLesson}` }
     : nextTerm ? { label: 'Vocabulary', what: getTerm(nextTerm)!.term, href: `/dictionary/${nextTerm}` }
     : nextDrill ? { label: 'Big-O drill', what: getDrill(nextDrill)!.title, href: `/big-o/${nextDrill}` }
     : nextPattern ? { label: 'Pattern exercise', what: scenarios.find((s) => s.id === nextPattern)!.wording, href: `/patterns#${nextPattern}` }
-    : nextProblem ? { label: 'LeetCode', what: `${nextProblem.id}. ${nextProblem.title}`, href: `/tracker/${nextProblem.id}` }
-    : queues.problems.length ? { label: 'Review', what: `${queues.problems.length} problem${queues.problems.length === 1 ? '' : 's'} due`, href: '/review' }
+    : nextProblem ? { label: 'Guided practice', what: `${nextProblem.id}. ${nextProblem.title}`, href: `/tracker/${nextProblem.id}` }
+    : nextBlind ? { label: 'Independent solve', what: `Blind assessment: ${nextBlind.codename}`, href: `/blind/${nextBlind.id}` }
+    : queues.problems.length + queues.practice.length ? { label: 'Review', what: `${queues.problems.length + queues.practice.length} item${queues.problems.length + queues.practice.length === 1 ? '' : 's'} due`, href: '/review' }
     : null;
 
   return (
@@ -60,7 +71,7 @@ export function Dashboard() {
           </h1>
           <p style={{ marginBottom: 0 }}>{day.focus}</p>
           <div className="hero-meta">
-            <span><Clock size={14} aria-hidden="true" /> {studyBlocks.map((b) => `${b.label} ${b.minutes}`).join(' · ')}</span>
+            <span><Clock size={14} aria-hidden="true" /> Time split: {studyAllocation.map((b) => `${b.share}% ${b.id === 'dsa' ? 'DSA & blind solving' : b.id === 'oop' ? 'OOP' : b.id === 'behavioral' ? 'behavioral/product' : b.id === 'resume' ? 'projects' : 'vocab & code reading'}`).join(' · ')}</span>
           </div>
           {next ? (
             <div className="next-up">
@@ -101,7 +112,7 @@ export function Dashboard() {
 
       <div className="section-title">
         <h2>Today&apos;s learning sequence{day.date !== today ? ` · ${formatDate(day.date)}` : ''}</h2>
-        <span className="tiny muted">Learn → Vocabulary → Big-O → Pattern → Solve → Review</span>
+        <span className="tiny muted">Learn → Vocabulary → Big-O → Pattern → Guided practice → Independent solve → Review</span>
       </div>
       <nav className="sequence" aria-label="Today's steps">
         {seq.map((s, i) => {
@@ -114,7 +125,7 @@ export function Dashboard() {
                 {s.id === currentStep && <span className="tag">Now</span>}
               </span>
               <span className="label">{s.label}</span>
-              <span className="count">{s.id === 'review' ? (queues.problems.length ? `${queues.problems.length} due` : 'Queue clear') : s.total ? `${s.done}/${s.total}` : 'Nothing new today'}</span>
+              <span className="count">{s.id === 'review' ? (queues.problems.length + queues.practice.length ? `${queues.problems.length + queues.practice.length} due` : 'Queue clear') : s.total ? `${s.done}/${s.total}` : 'Nothing new today'}</span>
               {s.id !== 'review' && s.total > 0 && <ProgressBar value={s.done} max={s.total} tone={done ? 'good' : 'accent'} />}
             </a>
           );
@@ -193,8 +204,8 @@ export function Dashboard() {
           <Panel
             id="today-problems"
             className="section"
-            step={stepDone('solve') ? 'done' : 5}
-            title="Solve on LeetCode"
+            step={stepDone('guided') ? 'done' : 5}
+            title="Guided practice · LeetCode"
             action={<span className="badge accent">Daily target: {a.plannedTarget} · done {a.completedToday.filter((p) => p.wave !== 'Stretch').length}/{a.coreAssigned.length}</span>}
             flush
           >
@@ -216,9 +227,55 @@ export function Dashboard() {
             {day.extras.length > 0 && a.coreAssigned.length > 0 && <p className="small" style={{ padding: '12px 20px 16px', margin: 0, borderTop: '1px solid var(--line)' }}><strong>Also today:</strong> {day.extras.join(' · ')} — see <Link href="/mock">Mock Interviews</Link>.</p>}
           </Panel>
 
-          <Panel id="review" step={queues.problems.length + queues.concepts.length === 0 ? 'done' : 6} title="Review queue" icon={<RotateCcw size={16} aria-hidden="true" />} action={<Link className="btn small ghost" href="/review">Open review</Link>} flush>
-            <ReviewList problems={queues.problems.slice(0, 6)} concepts={queues.concepts.slice(0, 6)} />
+          <Panel
+            id="today-blind"
+            className="section"
+            step={stepDone('independent') ? 'done' : 6}
+            title="Independent solve · blind assessments"
+            icon={<EyeOff size={16} aria-hidden="true" />}
+            action={<Link className="btn small ghost" href="/blind">All assessments</Link>}
+            flush
+          >
+            {blind.length === 0 ? <EmptyState>No blind assessments today.</EmptyState> : (
+              <ul className="item-list">
+                {blind.map((b) => {
+                  const st = practiceStatus(practiceRecord(progress, `blind:${b.id}`));
+                  return (
+                    <li key={b.id} className="item">
+                      <div style={{ minWidth: 0, flex: 1 }}><Link className="title" href={`/blind/${b.id}`}>{b.codename}</Link><div className="tiny muted">Pattern, difficulty and solution hidden · ~25 min · talk out loud</div></div>
+                      <span className={`status ${st.tone}`}>{st.label}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </Panel>
+
+          <Panel id="review" step={dueTotal === 0 ? 'done' : 7} title="Review and mistakes" icon={<RotateCcw size={16} aria-hidden="true" />} action={<Link className="btn small ghost" href="/review">Open review</Link>} flush>
+            <ReviewList problems={queues.problems.slice(0, 6)} concepts={queues.concepts.slice(0, 6)} practice={queues.practice.slice(0, 6)} />
+          </Panel>
+
+          {(practice.oop || practice.reading?.length || practice.behavioral?.length || practice.product || practice.project) && (
+            <Panel id="today-other" className="section" title="Also today · the other 35%" action={<span className="tiny muted">OOP 15% · behavioral/product 10% · projects 5% · code reading 5%</span>} flush>
+              <ul className="item-list">
+                {practice.oop && (() => { const c = getOopChallenge(practice.oop)!; const st = practiceStatus(practiceRecord(progress, `oop:${c.id}`)); return (
+                  <li className="item"><div style={{ minWidth: 0, flex: 1 }}><span className="meta">OOP · ~45 min</span><div><Link className="title" href={`/oop/${c.id}`}>{c.title}</Link>{c.evidence === 'colorstack-reported' && <span className="badge accent" style={{ marginLeft: 8 }}>Reported</span>}</div></div><span className={`status ${st.tone}`}>{st.label}</span></li>
+                ); })()}
+                {(practice.reading ?? []).map((rid) => { const r = getCodeReading(rid)!; const done = practiceRecord(progress, `read:${rid}`).attempts.length > 0; return (
+                  <li key={rid} className="item"><div style={{ minWidth: 0, flex: 1 }}><span className="meta">Code reading · ~7 min</span><div><Link className="title" href={`/code-reading#${rid}`}>{r.title}</Link></div></div><span className={`status${done ? ' good' : ''}`}>{done ? 'Done' : 'New'}</span></li>
+                ); })}
+                {(practice.behavioral ?? []).map((bid) => { const b = behavioralPrompts.find((x) => x.id === bid)!; return (
+                  <li key={bid} className="item"><div style={{ minWidth: 0, flex: 1 }}><span className="meta">Behavioral · ~10 min</span><div><Link className="title" href={`/mock/behavioral#${bid}`}>{b.prompt}</Link></div></div></li>
+                ); })}
+                {practice.product && (() => { const pp = productPrompts.find((x) => x.id === practice.product)!; return (
+                  <li className="item"><div style={{ minWidth: 0, flex: 1 }}><span className="meta">Product · ~10 min</span><div><Link className="title" href={`/mock/behavioral#${pp.id}`}>{pp.prompt}</Link></div></div></li>
+                ); })()}
+                {practice.project && (() => { const pr = getProject(practice.project)!; return (
+                  <li className="item"><div style={{ minWidth: 0, flex: 1 }}><span className="meta">Project · ~15 min</span><div><Link className="title" href="/mock/projects">Explain {pr.name} in 30 s, 60 s and 2 min</Link></div></div></li>
+                ); })()}
+              </ul>
+            </Panel>
+          )}
         </div>
 
         <aside className="dash-rail" aria-label="Progress and upcoming">

@@ -5,6 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { allLessons } from '@/content/modules';
 import { drills } from '@/content/drills';
+import { blindItems } from '@/content/blind';
+import { oopChallenges } from '@/content/oop-challenges';
+import { codeReadings } from '@/content/code-reading';
 
 const python = spawnSync('python3', ['--version']).status === 0 ? 'python3' : null;
 
@@ -31,6 +34,41 @@ describe.skipIf(!python)('every Big-O drill snippet is valid Python', () => {
   for (const drill of drills) {
     it(drill.id, () => {
       const result = run(`import ast\nast.parse(${JSON.stringify(drill.code)})\n`);
+      expect(result.stderr).toBe('');
+      expect(result.status).toBe(0);
+    });
+  }
+});
+
+describe.skipIf(!python)('every blind-assessment reference solution passes its asserts', () => {
+  for (const b of blindItems) {
+    it(b.id, () => {
+      const result = run(b.answer.solution);
+      expect(result.stderr).toBe('');
+      expect(result.status).toBe(0);
+    });
+  }
+});
+
+describe.skipIf(!python)('every OOP challenge: reference solution passes, starter is valid Python', () => {
+  for (const c of oopChallenges) {
+    it(`${c.id} solution`, () => {
+      const result = run(c.solution);
+      expect(result.stderr).toBe('');
+      expect(result.status).toBe(0);
+    });
+    it(`${c.id} starter`, () => {
+      const result = run(c.starter);
+      expect(result.stderr).toBe('');
+      expect(result.status).toBe(0);
+    });
+  }
+});
+
+describe.skipIf(!python)('every code-reading snippet behaves as its model answer claims', () => {
+  for (const r of codeReadings) {
+    it(r.id, () => {
+      const result = run(r.code);
       expect(result.stderr).toBe('');
       expect(result.status).toBe(0);
     });

@@ -12,6 +12,8 @@ import { searchSortModule } from './search-sort';
 import { treesModule } from './trees';
 import { graphsModule } from './graphs';
 import { patternsModule } from './patterns';
+import { solvingModule } from './solving';
+import { oopModule } from './oop';
 
 export const modules: Module[] = [
   pythonModule,
@@ -27,6 +29,8 @@ export const modules: Module[] = [
   treesModule,
   graphsModule,
   patternsModule,
+  solvingModule,
+  oopModule,
 ];
 
 export type LessonRef = { module: Module; lesson: Lesson; key: string };

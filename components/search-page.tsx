@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { search, type SearchKind } from '@/lib/search';
 import { PageHeader } from './ui';
 
-const ORDER: SearchKind[] = ['Term', 'Lesson', 'Problem', 'Big-O drill', 'Pattern exercise', 'Decoder', 'Mock interview'];
+const ORDER: SearchKind[] = ['Term', 'Lesson', 'Problem', 'OOP challenge', 'Big-O drill', 'Pattern exercise', 'Code reading', 'Decoder', 'Mock interview', 'Blind assessment', 'Behavioral', 'Product'];
 
 export function SearchPage() {
   const initial = useSearchParams().get('q') ?? '';
@@ -30,7 +30,7 @@ function SearchInner({ initial }: { initial: string }) {
       {q && <p className="small muted" style={{ marginTop: 12 }}>{results.length} result{results.length === 1 ? '' : 's'} for “{q}”.</p>}
       {groups.map((g) => (
         <section key={g.kind} className="section" style={{ marginTop: 'var(--s6)' }}>
-          <div className="section-title" style={{ marginTop: 0 }}><h2>{g.kind === 'Term' ? 'Definitions' : `${g.kind}s`}</h2><span className="tiny muted">{g.items.length}</span></div>
+          <div className="section-title" style={{ marginTop: 0 }}><h2>{g.kind === 'Term' ? 'Definitions' : g.kind === 'Code reading' ? 'Code reading' : g.kind === 'Behavioral' || g.kind === 'Product' ? `${g.kind} prompts` : `${g.kind}s`}</h2><span className="tiny muted">{g.items.length}</span></div>
           <ul className="item-list">
             {g.items.map((r) => (
               <li key={r.href + r.title} className="item">

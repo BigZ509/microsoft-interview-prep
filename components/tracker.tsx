@@ -28,7 +28,8 @@ export function Tracker() {
     const rec = problemRecord(progress, p.id);
     if (f.status === 'mastered' ? !isMastered(rec) : f.status !== 'all' && rec.status !== f.status) return false;
     if (f.topic !== 'all' && p.topic !== f.topic) return false;
-    if (f.wave !== 'all' && p.wave !== f.wave) return false;
+    if (f.wave === 'reported') { if (!p.evidence?.some((e) => e !== 'colorstack-recommended')) return false; }
+    else if (f.wave !== 'all' && p.wave !== f.wave) return false;
     if (f.difficulty !== 'all' && p.difficulty !== f.difficulty) return false;
     return true;
   });
@@ -46,7 +47,7 @@ export function Tracker() {
       <PageHeader
         eyebrow="LeetCode Tracker"
         title="Your study-plan problems"
-        description="The 35 problems from your plan — 18 first-wave, 14 supporting, and 3 optional P1 stretch problems — on the dates you planned. Solve on LeetCode, then record what happened here. Nothing syncs from LeetCode; every status is one you record."
+        description="The 35 problems from your original plan plus 20 added on Nov 25 from the ColorStack research (10 core — reported, historical or approachable Easy — and 10 optional). Advanced and secondary-topic problems are marked optional. Solve on LeetCode, then record what happened here. Nothing syncs from LeetCode; every status is one you record."
       />
       {track && (
         <div className="stats" style={{ marginBottom: 'var(--s5)' }}>
@@ -70,7 +71,7 @@ export function Tracker() {
         </label>
         <label className="field">Priority
           <select value={f.wave} onChange={(e) => setF({ ...f, wave: e.target.value })}>
-            <option value="all">All priorities</option><option>First wave</option><option>Supporting</option><option value="Stretch">P1 stretch</option>
+            <option value="all">All priorities</option><option>First wave</option><option>Supporting</option><option value="Stretch">Optional / stretch</option><option value="reported">Reported or historical</option>
           </select>
         </label>
         <label className="field">Difficulty
@@ -167,6 +168,8 @@ export function ProblemDetail({ id }: { id: number }) {
         </div>
         <p className="lede" style={{ fontSize: 'var(--fs-base)' }}><strong style={{ color: 'var(--ink)' }}>Why it was selected:</strong> {p.why}</p>
         {p.candidateReport && <div className="callout warn small"><strong>Candidate report (anecdotal):</strong> {p.candidateReport}</div>}
+        {p.demoted && <div className="callout small"><strong>Optional since Nov 25:</strong> {p.demoted}</div>}
+        {p.evidence && !p.candidateReport && <p className="tiny muted">Evidence: {p.evidence.map((e) => e === 'colorstack-reported' ? 'ColorStack-reported' : e === 'github-historical' ? 'historical report' : 'ColorStack-recommended practice').join(', ')} (anecdotal).</p>}
       </PageHeader>
 
       <div className="grid-2" style={{ alignItems: 'start' }}>

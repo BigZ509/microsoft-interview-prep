@@ -11,6 +11,8 @@ export const sources: Source[] = [
   { title: 'NeetCode roadmap', url: 'https://neetcode.io/roadmap', label: 'CURATED', note: 'A popular curated ordering of interview patterns.' },
   { title: 'VisuAlgo', url: 'https://visualgo.net/en', label: 'EDUCATIONAL', note: 'Interactive algorithm visualizations (link only; illustrations not reused).' },
   { title: 'U of T — first-year Microsoft Explore experience (2023)', url: 'https://www.teach.cs.toronto.edu/ambassadors/blog/2023-microsoft-explore/first-year/', label: 'ANECDOTAL', note: 'One first-person account. Formats vary by team and interviewer.' },
+  { title: 'ColorStack community document — Microsoft Explore interview experiences (stored locally)', url: 'https://github.com/BigZ509/microsoft-interview-prep/blob/main/sources/colorstack-explore-research.md', label: 'ANECDOTAL', note: 'Firsthand member reports (Roman to Integer, Two Sum + sorted follow-up, code explanation, linked-list node removal, Merge Two Sorted Lists, a Canva OOP question), plus practice recommendations. Publication date unknown. Stored verbatim in sources/colorstack-explore-research.md.' },
+  { title: 'CourtneyThurston/microsoft-internships (historical question reports)', url: 'https://github.com/CourtneyThurston/microsoft-internships', label: 'ANECDOTAL', note: 'Historical reports (phone book, doubly linked list, invert BST, clock angle, remove duplicates, reverse string, missing number). Not confirmed for the current cycle.' },
   { title: 'FastPrep — aggregated Microsoft Explore & student SWE experiences', url: 'https://www.fastprep.io/experience/microsoft-explore-and-student-swe-12-experiences-part-6-of-6-1t6v0p8cg8', label: 'ANECDOTAL', note: 'Aggregated reports; only some are Explore. Source of the digit-grouping problem shape used here as a reconstruction.' },
 ];
 
@@ -19,4 +21,5 @@ export const disclaimers = [
   'Interview formats vary by team and interviewer; nothing here guarantees specific questions or a fixed round structure.',
   'Priorities (P0/P1/P2) are study recommendations from your plan, not verified interview-frequency data.',
   'The digit-permutation grouping exercise is a reconstruction of a candidate report, not an official question.',
+  'ColorStack and GitHub reports are anecdotal; the Canva OOP exercise lists every requirement the app had to infer because the source screenshot was partly obscured.',
 ];

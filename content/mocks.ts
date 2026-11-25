@@ -183,17 +183,51 @@ export type RubricId = (typeof rubric)[number]['id'];
 
 // ------------------------- Behavioral (STAR(R)) -------------------------
 
-export const behavioralPrompts: { id: string; theme: string; prompt: string; tip: string }[] = [
-  { id: 'why-microsoft', theme: 'Motivation', prompt: 'Why Microsoft?', tip: 'Connect a specific product, mission statement, or technology to something you have actually built or used. Avoid generic praise.' },
-  { id: 'why-explore', theme: 'Motivation', prompt: 'Why the Explore program?', tip: 'Explore rotates through software engineering and program/product management — say what you want to learn from both.' },
-  { id: 'teamwork', theme: 'Teamwork', prompt: 'Tell me about a time you worked on a team to deliver something.', tip: 'Make your personal contribution explicit: "I" for your actions, "we" only for shared outcomes.' },
-  { id: 'conflict', theme: 'Conflict', prompt: 'Describe a disagreement with a teammate and how you resolved it.', tip: 'Show listening and data-driven resolution, not winning the argument.' },
-  { id: 'failure', theme: 'Growth', prompt: 'Tell me about a time something you built did not work as planned.', tip: 'Spend most of the time on what you changed afterwards (Reflection).' },
-  { id: 'feedback', theme: 'Growth', prompt: 'Describe a time you received difficult feedback.', tip: 'Name the feedback, the action you took, and evidence that you improved.' },
-  { id: 'pressure', theme: 'Adaptability', prompt: 'Tell me about a time you had to deliver under a tight deadline.', tip: 'Explain how you prioritized and what you deliberately cut.' },
-  { id: 'learn-fast', theme: 'Adaptability', prompt: 'Describe a time you had to learn a new technology quickly.', tip: 'Describe your learning process — that is what transfers to the internship.' },
-  { id: 'leadership', theme: 'Leadership', prompt: 'Tell me about a time you took initiative without being asked.', tip: 'Leadership can be small: unblocking a teammate, writing docs, organizing tests.' },
-  { id: 'project-decision', theme: 'Technical judgment', prompt: 'Walk me through a technical decision you made on a project and the alternatives you considered.', tip: 'Use the project-defense cards below; quantify only with numbers you can verify.' },
+/** Story-bank slots: a few reusable stories cover most behavioral questions (scope correction §6). */
+export type StorySlotId = 'lead' | 'build' | 'team-trouble' | 'ambiguity' | 'persistence' | 'pitch';
+
+export const storySlots: { id: StorySlotId; title: string; covers: string; seeds: string[] }[] = [
+  { id: 'lead', title: 'Leading people under pressure', covers: 'Leadership, teamwork, conflict, adapting your style',
+    seeds: ['Résumé: Security Team Lead, Universal Studios Florida (Aug 2021 – Aug 2023) — led a 12-person team during park operations serving 30,000–35,000 daily visitors; coordinated assignments, real-time incident response, and communication with staff and park leadership.', 'Pick ONE specific shift or incident. The details must be yours.'] },
+  { id: 'build', title: 'A technical thing I built and can defend', covers: 'Technical competence, technical decisions, "why should we hire you"',
+    seeds: ['Road Report classifier (your code + tests), the ZBXP XP ledger and data model, or the SpeakLab backend/analysis — see Mock → Projects for the grounded facts.', 'Choose the one where you can explain a decision and a trade-off without notes.'] },
+  { id: 'team-trouble', title: 'A team project that was going poorly', covers: 'Team project going poorly, conflict, adapting your working style',
+    seeds: ['Candidates from your own work: a hackathon (Road Report) or coordinating SpeakLab teammates as technical lead.', 'What was going wrong, what did YOU change, and what happened after?'] },
+  { id: 'ambiguity', title: 'Little information or guidance', covers: 'Ambiguous projects, learning fast, initiative',
+    seeds: ['A project where you had to define the scope yourself or learn a technology quickly.', 'Show how you reduced the ambiguity: questions you asked, a prototype, a decision you wrote down.'] },
+  { id: 'persistence', title: 'Persistence when it was hard', covers: 'Persistence, failure, receiving feedback',
+    seeds: ['A bug, a rejected idea or a setback you kept working through.', 'End with what you would do differently — the reflection is the point.'] },
+  { id: 'pitch', title: 'My pitch: why CS, why Microsoft, what makes me tick', covers: 'Why CS, what makes you tick, PM vs SWE, why should Microsoft hire you',
+    seeds: ['Not a STAR story: 3–4 sentences connecting your background (security lead, Boys & Girls Club volunteer, the projects you built) to what you want to learn in Explore.', 'Explore rotates through SWE and PM — have a genuine answer for which you lean toward and why.'] },
+];
+
+export type PromptSource = 'colorstack-reported' | 'github-historical' | 'general';
+
+export const behavioralPrompts: { id: string; theme: string; prompt: string; tip: string; source: PromptSource; slot?: StorySlotId }[] = [
+  // ColorStack-reported (sources/colorstack-explore-research.md §5)
+  { id: 'cs-teamwork', theme: 'Teamwork', source: 'colorstack-reported', slot: 'lead', prompt: 'How do you work in a team?', tip: 'Give one habit and one example: how you split work, communicate status, and handle disagreement.' },
+  { id: 'cs-why-cs', theme: 'Motivation', source: 'colorstack-reported', slot: 'pitch', prompt: 'What made you pursue computer science?', tip: 'A specific moment or project, not "I always liked computers". Connect it to what you build now.' },
+  { id: 'cs-persistence', theme: 'Persistence', source: 'colorstack-reported', slot: 'persistence', prompt: 'Describe a time your persistence allowed you to achieve something others could not.', tip: 'Make the obstacle concrete and show the specific things you tried, not just that you "kept going".' },
+  { id: 'cs-team-poorly', theme: 'Teamwork', source: 'colorstack-reported', slot: 'team-trouble', prompt: 'Describe a team project that was going poorly and how you responded.', tip: 'Do not blame teammates. Spend the time on what you changed and the result.' },
+  { id: 'cs-tick', theme: 'Motivation', source: 'colorstack-reported', slot: 'pitch', prompt: 'What makes you tick?', tip: 'One honest driver plus evidence from something you did.' },
+  { id: 'cs-little-guidance', theme: 'Ambiguity', source: 'colorstack-reported', slot: 'ambiguity', prompt: 'Describe a project where you received very little information or guidance.', tip: 'Show how you created structure: questions, a small prototype, a written plan.' },
+  { id: 'cs-technical-competence', theme: 'Technical', source: 'colorstack-reported', slot: 'build', prompt: 'Describe a time you had to demonstrate your technical competence.', tip: 'Pick a decision you can explain in depth; interviewers may follow up on details.' },
+  { id: 'cs-adapted-style', theme: 'Adaptability', source: 'colorstack-reported', slot: 'team-trouble', prompt: 'Describe a time you adapted your working style within a team.', tip: 'Name your default style, why it did not fit, and what you changed.' },
+  { id: 'cs-conflict', theme: 'Conflict', source: 'colorstack-reported', slot: 'lead', prompt: 'Describe a time you resolved a team conflict.', tip: 'Listening first, then a shared goal or data to decide — not "I convinced them".' },
+  { id: 'cs-led', theme: 'Leadership', source: 'colorstack-reported', slot: 'lead', prompt: 'Describe a time you led a team or project.', tip: 'Your security-lead role is a real leadership story; quantify only with résumé facts.' },
+  { id: 'cs-pm-or-swe', theme: 'Motivation', source: 'colorstack-reported', slot: 'pitch', prompt: 'Do you lean more toward product management or software engineering?', tip: 'Either answer is fine — give a reason and show curiosity about the other side (Explore rotates through both).' },
+  { id: 'cs-why-hire', theme: 'Motivation', source: 'colorstack-reported', slot: 'pitch', prompt: 'Why should Microsoft hire you?', tip: 'Three points with evidence: what you build, how you work with people, how fast you learn.' },
+  // Earlier general prompts (kept so existing story cards keep their prompt and tip)
+  { id: 'why-microsoft', theme: 'Motivation', source: 'general', slot: 'pitch', prompt: 'Why Microsoft?', tip: 'Connect a specific product, mission statement, or technology to something you have actually built or used. Avoid generic praise.' },
+  { id: 'why-explore', theme: 'Motivation', source: 'general', slot: 'pitch', prompt: 'Why the Explore program?', tip: 'Explore rotates through software engineering and program/product management — say what you want to learn from both.' },
+  { id: 'teamwork', theme: 'Teamwork', source: 'general', slot: 'lead', prompt: 'Tell me about a time you worked on a team to deliver something.', tip: 'Make your personal contribution explicit: "I" for your actions, "we" only for shared outcomes.' },
+  { id: 'conflict', theme: 'Conflict', source: 'general', slot: 'lead', prompt: 'Describe a disagreement with a teammate and how you resolved it.', tip: 'Show listening and data-driven resolution, not winning the argument.' },
+  { id: 'failure', theme: 'Growth', source: 'general', slot: 'persistence', prompt: 'Tell me about a time something you built did not work as planned.', tip: 'Spend most of the time on what you changed afterwards (Reflection).' },
+  { id: 'feedback', theme: 'Growth', source: 'general', slot: 'persistence', prompt: 'Describe a time you received difficult feedback.', tip: 'Name the feedback, the action you took, and evidence that you improved.' },
+  { id: 'pressure', theme: 'Adaptability', source: 'general', slot: 'lead', prompt: 'Tell me about a time you had to deliver under a tight deadline.', tip: 'Explain how you prioritized and what you deliberately cut.' },
+  { id: 'learn-fast', theme: 'Adaptability', source: 'general', slot: 'ambiguity', prompt: 'Describe a time you had to learn a new technology quickly.', tip: 'Describe your learning process — that is what transfers to the internship.' },
+  { id: 'leadership', theme: 'Leadership', source: 'general', slot: 'lead', prompt: 'Tell me about a time you took initiative without being asked.', tip: 'Leadership can be small: unblocking a teammate, writing docs, organizing tests.' },
+  { id: 'project-decision', theme: 'Technical judgment', source: 'general', slot: 'build', prompt: 'Walk me through a technical decision you made on a project and the alternatives you considered.', tip: 'Use Mock → Projects; quantify only with numbers you can verify.' },
 ];
 
 export const starFields = [
@@ -222,25 +256,69 @@ export const projectFields = [
 
 export type ProjectFieldId = (typeof projectFields)[number]['id'];
 
-/** Optional starter cards named in the study plan. Content is intentionally blank — use your own words. */
-export const starterProjects = ['Road Report', 'Guiding Hands', 'SpeakLab', 'ZBXP'];
+/**
+ * Legacy project-defense card names (progress.projects[name]). Notes saved under these names are
+ * still shown on Mock → Projects. Guiding Hands was removed on Nov 25 (not on the submitted résumé);
+ * any notes saved under it stay in storage untouched.
+ */
+export const legacyProjectNames: Record<string, string> = { 'road-report': 'Road Report', speaklab: 'SpeakLab', zbxp: 'ZBXP' };
 
 // ------------------------- Product thinking -------------------------
 
-export const productPrompts: { id: string; prompt: string; steps: string[] }[] = [
+/** Frameworks from the ColorStack research (§7). */
+export const frameworks = {
+  star: { name: 'STAR', steps: ['Situation', 'Task', 'Action', 'Result'] },
+  circles: {
+    name: 'CIRCLES',
+    steps: ['Comprehend the situation.', 'Identify the customer.', 'Report customer needs.', 'Cut through prioritization.', 'List solutions.', 'Evaluate trade-offs.', 'Summarize recommendations.'],
+  },
+  testing: {
+    name: 'Product testing',
+    steps: ['What are we hoping to determine?', 'What are we looking for?', 'How do we determine whether the product passes?', 'What possible test cases could cause failure?'],
+  },
+  explain: {
+    name: 'Explain it simply',
+    steps: ['Who is the listener and what do they already know?', 'One analogy they will recognise.', 'The 3 ideas that matter, in order.', 'Check understanding: how would they say it back to you?'],
+  },
+} as const;
+
+export type ProductFramework = 'circles' | 'testing' | 'explain';
+
+export const productPrompts: { id: string; prompt: string; framework: ProductFramework; source: PromptSource; steps: string[] }[] = [
+  // ColorStack-reported (§5)
+  { id: 'cs-app-scope-market', source: 'colorstack-reported', framework: 'circles', prompt: 'How would you create an application, determine its scope, implement its features and market it?', steps: [] },
+  { id: 'cs-unlimited', source: 'colorstack-reported', framework: 'circles', prompt: 'What application would you create with unlimited resources?', steps: [] },
+  { id: 'cs-remote-comms', source: 'colorstack-reported', framework: 'circles', prompt: 'How would you improve enterprise communication products such as Teams, Zoom or Slack for remote workers?', steps: [] },
+  { id: 'cs-calendar', source: 'colorstack-reported', framework: 'circles', prompt: 'Design a calendar.', steps: [] },
+  { id: 'cs-remote-phone', source: 'colorstack-reported', framework: 'circles', prompt: 'Design a phone for a remote group.', steps: [] },
+  // Historical GitHub reports (§6)
+  { id: 'gh-test-keyboard', source: 'github-historical', framework: 'testing', prompt: 'How would you test a keyboard?', steps: [] },
+  { id: 'gh-test-pen', source: 'github-historical', framework: 'testing', prompt: 'How would you test a pen?', steps: [] },
+  { id: 'gh-calculator-vi', source: 'github-historical', framework: 'circles', prompt: 'Design a calculator for a visually impaired student.', steps: [] },
+  { id: 'gh-vending-toaster', source: 'github-historical', framework: 'circles', prompt: 'Design a vending machine or toaster.', steps: [] },
+  { id: 'gh-explain-computer', source: 'github-historical', framework: 'explain', prompt: 'Explain a computer to a five-year-old in two to three minutes.', steps: [] },
+  { id: 'gh-c-vs-java', source: 'github-historical', framework: 'explain', prompt: 'Explain differences between C and Java or C and C# and their implications for design decisions.', steps: [] },
+  { id: 'gh-ice-cream', source: 'github-historical', framework: 'circles', prompt: 'How would you serve a large group of waiting customers in an ice cream shop?', steps: [] },
+  { id: 'gh-cookbook', source: 'github-historical', framework: 'circles', prompt: 'Design a multimedia cookbook for a family with varying cooking skills and abilities.', steps: [] },
+  // Earlier general prompts (kept; their saved answers live under projects["product:<id>"])
   {
-    id: 'favorite-product',
+    id: 'favorite-product', source: 'general', framework: 'circles',
     prompt: 'What is your favorite Microsoft product, and how would you improve it?',
     steps: ['Pick a product you genuinely use.', 'Choose a specific target user.', 'Name one concrete pain point.', 'Propose one improvement.', 'Explain the trade-off (cost, complexity, risk).', 'Define a success metric.'],
   },
   {
-    id: 'student-feature',
+    id: 'student-feature', source: 'general', framework: 'circles',
     prompt: 'Design a feature for students in a Microsoft product (e.g., Teams, OneNote, Outlook).',
     steps: ['Who is the student and what are they trying to do?', 'What do they do today, and where does it hurt?', 'List 2–3 ideas; pick one and say why.', 'Sketch the user flow in words.', 'How would you measure success after launch?'],
   },
   {
-    id: 'prioritize',
+    id: 'prioritize', source: 'general', framework: 'circles',
     prompt: 'You have three feature requests and time for one. How do you choose?',
     steps: ['Clarify the goal (growth, retention, accessibility…).', 'Estimate impact and effort for each.', 'Consider risk and dependencies.', 'Decide and state what you would revisit later.'],
   },
 ];
+
+/** The answer steps for a product prompt: its own steps, or its framework's. */
+export function productSteps(p: (typeof productPrompts)[number]): readonly string[] {
+  return p.steps.length ? p.steps : frameworks[p.framework].steps;
+}

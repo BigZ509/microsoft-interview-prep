@@ -360,5 +360,139 @@ assert has_cycle_floyd(one) and has_cycle_set(one)
       terms: ['cycle', 'visited', 'pointer', 'trade-off'],
       verbal: "\"The simple approach stores visited nodes in a set: O(n) time and space. To get O(1) space, I'll use fast and slow pointers — they meet if and only if there's a cycle.\"",
     },
+    {
+      id: 'remove',
+      title: 'Removing nodes: every variant of "remove a node"',
+      summary: 'To unlink a node you need the node before it. A dummy head removes the head special case; the variants differ only in how you find that previous node.',
+      what: "ColorStack members report being asked to **remove a node from a linked list** without the variant being specified, so be ready for all of them — and ask which one is meant.\n\nThe core move is the same everywhere: `prev.next = prev.next.next` skips the node, and Python's garbage collector frees it. The variants differ in how you reach `prev`:\n\n- **By value** (LC 203): walk with `prev`; a **dummy** node before the head means removing the head needs no special case.\n- **Duplicates in a sorted list** (LC 83): compare each node with `node.next`; equal values are adjacent.\n- **Given only the node** (LC 237): you cannot reach the previous node, so copy the next node's value into this one and skip the next node. (Not possible for the tail.)\n- **n-th from the end** (LC 19): two passes (count, then remove), or one pass with a lead pointer n steps ahead.\n- **Doubly linked lists** also keep `prev`, so removal updates two links — and you can walk **backwards** from the tail, which answers the historical question \"print the values of a doubly linked list in descending order\" for a list sorted ascending.",
+      why: "Removal is the most common linked-list question family and the reported Explore question. It tests pointer handling, the head edge case and whether you clarify an ambiguous request.",
+      how: [
+        "Clarify: remove by value, all occurrences or the first, a given node, or a position? Singly or doubly linked? Return the new head?",
+        "Create `dummy = ListNode(0, head)` and start `prev = dummy`.",
+        "While `prev.next` exists: if `prev.next` should go, set `prev.next = prev.next.next` and do NOT move `prev`; otherwise move `prev = prev.next`.",
+        "Return `dummy.next` — the head may have changed.",
+        "Test: empty list, removing the head, removing the tail, removing every node, value not present.",
+      ],
+      visual: {
+        kind: 'list',
+        title: 'Remove every 6 from 1 → 6 → 2 → 6',
+        steps: [
+          { nodes: ['dummy', '1', '6', '2', '6'], next: [1, 2, 3, 4, null], pointers: { prev: 0 }, note: 'prev starts at the dummy. prev.next is 1 — keep it, move prev.' },
+          { nodes: ['dummy', '1', '6', '2', '6'], next: [1, 2, 3, 4, null], pointers: { prev: 1 }, note: 'prev.next is 6 — remove it.' },
+          { nodes: ['dummy', '1', '6', '2', '6'], next: [1, 3, 3, 4, null], pointers: { prev: 1 }, note: 'prev.next = prev.next.next: 1 now points to 2. prev does not move.' },
+          { nodes: ['dummy', '1', '6', '2', '6'], next: [1, 3, 3, 4, null], pointers: { prev: 3 }, note: 'prev.next is 2 — keep, move prev to 2.' },
+          { nodes: ['dummy', '1', '6', '2', '6'], next: [1, 3, 3, null, null], pointers: { prev: 3 }, note: 'prev.next is 6 — skip it. prev.next is now None, so stop. Return dummy.next.' },
+        ],
+      },
+      code: NODE + py`
+def remove_value(head, val):                     # LC 203
+    dummy = ListNode(0, head)
+    prev = dummy
+    while prev.next:
+        if prev.next.val == val:
+            prev.next = prev.next.next           # unlink; do not advance
+        else:
+            prev = prev.next
+    return dummy.next
+
+assert to_list(remove_value(build([1, 6, 2, 6]), 6)) == [1, 2]
+assert to_list(remove_value(build([6, 6, 6]), 6)) == []          # every node, including head
+assert to_list(remove_value(build([]), 1)) == []
+assert to_list(remove_value(build([1, 2]), 9)) == [1, 2]         # value not present
+
+def remove_sorted_duplicates(head):              # LC 83
+    node = head
+    while node and node.next:
+        if node.val == node.next.val:
+            node.next = node.next.next
+        else:
+            node = node.next
+    return head
+
+assert to_list(remove_sorted_duplicates(build([1, 1, 2, 3, 3, 3]))) == [1, 2, 3]
+
+def delete_given_node(node):                     # LC 237: no access to the head or prev
+    node.val = node.next.val
+    node.next = node.next.next
+
+h = build([4, 5, 1, 9])
+delete_given_node(h.next)                        # "delete" the node holding 5
+assert to_list(h) == [4, 1, 9]
+
+def remove_nth_from_end(head, n):                # LC 19, one pass
+    dummy = ListNode(0, head)
+    lead = trail = dummy
+    for _ in range(n):
+        lead = lead.next
+    while lead.next:
+        lead, trail = lead.next, trail.next
+    trail.next = trail.next.next
+    return dummy.next
+
+assert to_list(remove_nth_from_end(build([1, 2, 3, 4, 5]), 2)) == [1, 2, 3, 5]
+assert to_list(remove_nth_from_end(build([1]), 1)) == []
+
+class DNode:                                     # doubly linked
+    def __init__(self, val):
+        self.val, self.prev, self.next = val, None, None
+
+def build_doubly(values):
+    head = tail = None
+    for v in values:
+        node = DNode(v)
+        if tail:
+            tail.next, node.prev = node, tail
+        else:
+            head = node
+        tail = node
+    return head, tail
+
+def descending(tail):
+    """Historical question: values of an ascending doubly linked list in descending order."""
+    out = []
+    while tail:
+        out.append(tail.val)
+        tail = tail.prev                         # walk backwards via prev
+    return out
+
+_, tail = build_doubly([1, 3, 5, 8])
+assert descending(tail) == [8, 5, 3, 1]
+head, tail = build_doubly([7, 2, 9])
+assert sorted((v for v in descending(tail)), reverse=True) == [9, 7, 2]   # unsorted list: collect, then sort
+`,
+      codeNotes: [
+        "`ListNode(0, head)` builds the dummy with `next = head` in one line.",
+        "`lead, trail = lead.next, trail.next` moves both pointers at once (tuple assignment).",
+        "`delete_given_node` copies the next value forward — it cannot remove the last node, because there is no next node to copy.",
+      ],
+      complexity: {
+        time: 'By value / duplicates / nth from end O(n); given node O(1); descending walk O(n) (O(n log n) if the list is unsorted and must be sorted)',
+        space: 'O(1) extra for every removal; O(n) for the descending output',
+        derivation: [
+          "Each loop iteration either unlinks one node or moves the pointer one step, so there are at most n iterations.",
+          "Removal only rewires pointers, so no extra memory beyond a few variables.",
+          "Walking a doubly linked list from the tail visits each node once → O(n). If the list is not sorted, collecting n values and sorting costs O(n log n).",
+        ],
+      },
+      whenToUse: [
+        "\"Remove/delete a node\", \"remove all occurrences\", \"remove duplicates\" on a linked list.",
+        "Any list operation that might change the head — reach for a dummy node.",
+        "Doubly linked lists when you need backwards traversal or O(1) removal given the node (LRU caches use this).",
+      ],
+      mistakes: [
+        "Advancing `prev` after a removal, which skips checking the new `prev.next` (fails on 6 → 6).",
+        "Returning `head` instead of `dummy.next` when the head was removed.",
+        "Calling `.next` on None at the end of the list — check `prev.next` before reading `prev.next.val`.",
+        "Not asking which variant is meant when the question just says \"remove a node\".",
+      ],
+      checks: [
+        { q: "Why not advance `prev` right after unlinking a node?", options: ['It would be slower', 'The new prev.next has not been checked yet — consecutive matches would be missed', 'Python forbids it', 'It breaks the dummy'], answer: 1, explain: "After skipping one 6, the next node could also be a 6." },
+        { q: "You are given only the node to delete (not the head). What do you do?", options: ['Walk from the head', 'Copy the next node\'s value into it, then skip the next node', 'Set node = None', 'It is impossible'], answer: 1, explain: "Without the previous node, make this node become its successor." },
+        { q: "The interviewer just says \"remove a node from a linked list\". Your first move?", options: ['Start coding removal by value', 'Ask which variant: by value, a given node, or a position — and whether the list is singly or doubly linked', 'Use a Python list instead', 'Reverse the list'], answer: 1, explain: "The reported question did not specify the variant; clarifying shows judgment and avoids solving the wrong problem." },
+      ],
+      problems: [203, 83, 237, 19, 160],
+      terms: ['node', 'pointer', 'edge-case', 'reference'],
+      verbal: "\"I'll put a dummy node in front of the head so removing the head isn't a special case. I walk with prev; when prev.next matches, I skip it with prev.next = prev.next.next and stay put; otherwise I advance. It's O(n) time and O(1) space, and I return dummy.next.\"",
+    },
   ],
 };

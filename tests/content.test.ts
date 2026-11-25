@@ -18,8 +18,9 @@ function validCheck(check: Check) {
 }
 
 describe('curriculum', () => {
-  it('has all 13 modules in order with unique IDs', () => {
-    expect(modules.map((m) => m.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+  it('has all 15 modules in order with unique IDs (13 original + problem solving + OOP)', () => {
+    expect(modules.map((m) => m.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    expect(modules.slice(-2).map((m) => m.id)).toEqual(['solving', 'oop']);
     expect(new Set(modules.map((m) => m.id)).size).toBe(modules.length);
   });
 
@@ -142,19 +143,47 @@ describe('LeetCode catalog', () => {
   const firstWave = [49, 242, 46, 1, 217, 169, 206, 21, 141, 167, 88, 232, 933, 20, 155, 56, 53, 3];
   const supporting = [121, 14, 1768, 1200, 704, 35, 733, 104, 100, 98, 78, 70, 560, 200, 994, 215, 207];
 
+  const planProblems = problems.filter((p) => p.origin !== 'colorstack');
+  const demoted = [933, 200]; // made optional by the Nov 25 scope correction (secondary topic / niche)
+
   it('imports exactly the problems from the study plan, deduplicated', () => {
-    const ids = problems.map((p) => p.id).sort((a, b) => a - b);
+    const ids = planProblems.map((p) => p.id).sort((a, b) => a - b);
     expect(ids).toEqual([...firstWave, ...supporting].sort((a, b) => a - b));
     expect(new Set(ids).size).toBe(35);
+    expect(new Set(problems.map((p) => p.id)).size).toBe(problems.length);
   });
 
-  it('preserves first-wave / supporting / P1 priorities', () => {
-    for (const id of firstWave) expect(getProblem(id)!.wave, String(id)).toBe('First wave');
+  it('preserves first-wave / supporting / P1 priorities, except documented demotions', () => {
+    for (const id of firstWave.filter((x) => !demoted.includes(x))) expect(getProblem(id)!.wave, String(id)).toBe('First wave');
     for (const id of [994, 215, 207]) {
       expect(getProblem(id)!.priority).toBe('P1');
       expect(getProblem(id)!.wave).toBe('Stretch');
     }
-    for (const id of supporting.filter((id) => ![994, 215, 207].includes(id))) expect(getProblem(id)!.wave, String(id)).toBe('Supporting');
+    for (const id of supporting.filter((id) => ![994, 215, 207, ...demoted].includes(id))) expect(getProblem(id)!.wave, String(id)).toBe('Supporting');
+    for (const id of demoted) {
+      const p = getProblem(id)!;
+      expect([p.wave, p.priority], String(id)).toEqual(['Stretch', 'P1']);
+      expect(p.demoted!.length, String(id)).toBeGreaterThan(40);
+    }
+    expect(problems.filter((p) => p.demoted).map((p) => p.id).sort((a, b) => a - b)).toEqual([200, 933]);
+  });
+
+  it('ColorStack additions carry evidence, and hard / advanced ones are optional', () => {
+    const added = problems.filter((p) => p.origin === 'colorstack');
+    expect(added).toHaveLength(20);
+    for (const p of added) {
+      expect(p.evidence?.length, String(p.id)).toBeGreaterThan(0);
+      if (p.difficulty === 'Hard') expect(p.wave, String(p.id)).toBe('Stretch');
+      if (p.wave !== 'Stretch') expect(p.priority, String(p.id)).toBe('P0');
+    }
+    // Every ColorStack-reported LeetCode question is in the catalog and is core (not optional).
+    for (const id of [13, 1, 167, 21, 203]) {
+      const p = getProblem(id)!;
+      expect(p.evidence, String(id)).toContain('colorstack-reported');
+      expect(p.wave, String(id)).not.toBe('Stretch');
+    }
+    // Historical reports that map to LeetCode problems.
+    for (const id of [344, 226, 268, 1344, 83]) expect(getProblem(id)!.evidence, String(id)).toContain('github-historical');
   });
 
   it('uses exact names and difficulties from the plan', () => {

@@ -233,7 +233,7 @@ assert not is_valid_bst(build([5, 1, 6, None, None, 3, 7]))   # 3 is in 5's righ
         { q: "Max Depth combines children's results. Which order is that?", options: ['Preorder', 'Inorder', 'Postorder', 'BFS'], answer: 2, explain: "You need both children's depths before computing the node's." },
         { q: "Space for recursive DFS on a skewed tree of n nodes?", options: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'], answer: 2, explain: "Height is n - 1, so n frames can be active." },
       ],
-      problems: [104, 100, 98],
+      problems: [104, 100, 98, 226],
       terms: ['dfs', 'traversal', 'base-case', 'invariant', 'recursion'],
       verbal: "\"I'll do a DFS passing down the allowed range (low, high). Each node must be strictly inside its range; its left child gets (low, node.val), its right child (node.val, high). O(n) time, O(h) space.\"",
     },

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  BookOpen, BookText, Gauge, LayoutDashboard, Library, ListChecks, Menu, MessagesSquare, Puzzle, RotateCcw, Search, X,
+  BookOpen, BookText, Boxes, EyeOff, FileCode, Gauge, LayoutDashboard, Library, ListChecks, Menu, MessagesSquare, Puzzle, RotateCcw, Search, X,
 } from 'lucide-react';
 import { useHydrated, useProgress, useStorageError, useToday } from '@/lib/store';
 import { countdown } from '@/lib/dates';
@@ -31,12 +31,15 @@ const groups: { label: string; items: NavItem[] }[] = [
       { href: '/dictionary', label: 'Interview Dictionary', Icon: BookText, match: (p) => p.startsWith('/dictionary') },
       { href: '/patterns', label: 'Pattern Recognition', Icon: Puzzle, match: (p) => p.startsWith('/patterns') },
       { href: '/big-o', label: 'Big-O Lab', Icon: Gauge, match: (p) => p.startsWith('/big-o') },
+      { href: '/code-reading', label: 'Code Reading', Icon: FileCode, match: (p) => p.startsWith('/code-reading') },
     ],
   },
   {
     label: 'Practice',
     items: [
+      { href: '/blind', label: 'Blind Assessments', Icon: EyeOff, match: (p) => p.startsWith('/blind') },
       { href: '/tracker', label: 'LeetCode Tracker', Icon: ListChecks, match: (p) => p.startsWith('/tracker') },
+      { href: '/oop', label: 'OOP Challenges', Icon: Boxes, match: (p) => p.startsWith('/oop') },
       { href: '/mock', label: 'Mock Interviews', Icon: MessagesSquare, match: (p) => p.startsWith('/mock') },
     ],
   },
@@ -82,7 +85,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [q, setQ] = useState('');
   const [openFor, setOpenFor] = useState<string | null>(null);
   const open = openFor === pathname; // the drawer closes automatically on navigation
-  const dueCount = today && hydrated ? reviewQueuesFor(progress, today).problems.length : 0;
+  const dueCount = today && hydrated ? (() => { const q = reviewQueuesFor(progress, today); return q.problems.length + q.practice.length; })() : 0;
 
   useEffect(() => {
     if (!open) return;

@@ -145,7 +145,7 @@ describe('schedule tracking and rescheduling', () => {
     expect(s.dueToday).toBe(3);
     expect(s.behind).toBe(0);
     expect(s.state).toBe('on-track');
-    expect(s.totalPlanned).toBe(32);
+    expect(s.totalPlanned).toBe(40); // 32 plan core − 2 made optional (933, 200) + 10 ColorStack core additions
   });
 
   it('unfinished problems from earlier days count as behind', () => {

@@ -63,7 +63,9 @@ export function ProblemItem({ problem, progress, showDate = false }: { problem: 
         <span className="prob-title">
           <span className="prob-name">{problem.id}. {problem.title}</span>
           <DifficultyBadge difficulty={problem.difficulty} />
-          {problem.wave === 'Stretch' && <span className="badge">P1 · optional</span>}
+          {problem.evidence?.includes('colorstack-reported') && <span className="badge accent" title="Reported by ColorStack members in Explore interviews (anecdotal)">Reported</span>}
+          {!problem.evidence?.includes('colorstack-reported') && problem.evidence?.includes('github-historical') && <span className="badge" title="Historical Microsoft internship report (anecdotal)">Historical</span>}
+          {problem.wave === 'Stretch' && <span className="badge">{problem.demoted ? 'Optional' : 'P1 · optional'}</span>}
         </span>
         <span className="prob-meta" style={{ display: 'block' }}>
           {problem.pattern}{showDate ? ` · ${formatDate(effectiveDate(problem, progress))}` : ''}{rec.reschedule ? ' · rescheduled' : ''}
