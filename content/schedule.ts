@@ -1,29 +1,31 @@
 import type { StudyDay } from './types';
+import { bootcampDays, type BootcampDay } from './bootcamp';
+import { getProblem } from './problems';
 
 export const INTERVIEW_DATE = '2026-12-02';
 export const PLAN_START = '2026-11-21';
 
 /**
  * How active study time is split (scope correction, Nov 25 — sources/scope-priority-correction.md).
- * `minutes` assumes a 5-hour study day; scale it to the time you actually have.
+ * `minutes` assumes an 8-hour bootcamp day; the bootcamp tests check each day against `share`.
  */
 export const studyAllocation = [
-  { id: 'dsa', label: 'LeetCode, patterns, blind assessments, mistake review', share: 65, minutes: 195 },
-  { id: 'oop', label: 'Python OOP and practical coding', share: 15, minutes: 45 },
-  { id: 'behavioral', label: 'Behavioral and product design', share: 10, minutes: 30 },
-  { id: 'resume', label: 'Résumé and project architecture', share: 5, minutes: 15 },
-  { id: 'vocab', label: 'Vocabulary and code reading', share: 5, minutes: 15 },
+  { id: 'dsa', label: 'LeetCode, patterns, blind assessments, mistake review', share: 65, minutes: 312 },
+  { id: 'oop', label: 'Python OOP and practical coding', share: 15, minutes: 72 },
+  { id: 'behavioral', label: 'Behavioral and product design', share: 10, minutes: 48 },
+  { id: 'resume', label: 'Résumé and project architecture', share: 5, minutes: 24 },
+  { id: 'vocab', label: 'Vocabulary and code reading', share: 5, minutes: 24 },
 ] as const;
 
 /** Blind assessments served per day (see lib/plan.ts blindForDay). */
 export const BLIND_PER_DAY = 2;
 
 /**
- * The plan's "Suggested study plan until Dec 2, 2026", expanded with the lessons, vocabulary,
+ * Nov 21–24: the plan's "Suggested study plan until Dec 2, 2026" as already studied, expanded with the lessons, vocabulary,
  * drills and pattern exercises that support each day. `target` equals the number of First-wave +
  * Supporting problems assigned that day in content/problems.ts (verified by tests).
  */
-export const schedule: StudyDay[] = [
+const studiedDays: StudyDay[] = [
   {
     date: '2026-11-21', theme: 'Big-O, Python operation costs, hashing review',
     focus: 'Big-O, Python operation costs, hashing review, Group Anagrams and the digit-grouping mock. You have already practiced today’s three problems, so read the hashing lessons at review speed and spend the time on explaining Big-O out loud.',
@@ -64,83 +66,12 @@ export const schedule: StudyDay[] = [
     target: 3,
     extras: [],
   },
-  {
-    date: '2026-11-25', theme: 'Sliding window, strings, and reading a problem for its characteristics',
-    focus: 'Sliding window plus the reported string question (Roman to Integer). New today: the characteristics checklist — use it on every problem and on both blind assessments before choosing an approach. OOP starts with classes and the phone book.',
-    lessons: ['solving/characteristics', 'sliding-window/fixed', 'sliding-window/variable', 'solving/code-reading', 'oop/classes-objects'],
-    terms: ['contiguous', 'consecutive', 'amortized', 'maximum', 'monotonic', 'constraint'],
-    drills: ['sliding-window-amortized', 'slice-in-loop'],
-    patterns: ['longest-contiguous-condition', 'count-subarrays-k'],
-    target: 4,
-    extras: ['Optional: re-solve LC 121 (from Nov 22) framed as a window — left = buy day, right = sell day; move left when a cheaper day appears'],
-    practice: { oop: 'phone-book', reading: ['sum-evens', 'has-duplicates'], behavioral: ['cs-why-cs', 'cs-teamwork'], product: 'gh-test-keyboard', project: 'road-report' },
-  },
-  {
-    date: '2026-11-26', theme: 'Stacks, queues, and the reported "remove a node" question',
-    focus: 'Stacks and queues, then every variant of removing a linked-list node (reported). Practice brute force → bottleneck → optimize on each problem before looking at hints. OOP: inheritance and composition with the bank account.',
-    lessons: ['stacks-queues/stacks', 'stacks-queues/queues', 'stacks-queues/monotonic', 'linked-lists/remove', 'solving/brute-to-optimal', 'oop/inheritance-composition'],
-    terms: ['stack', 'queue', 'amortized', 'edge-case', 'decreasing', 'node', 'brute-force'],
-    drills: ['pop-front', 'monotonic-stack'],
-    patterns: ['most-recent-first', 'arrival-order', 'matching-brackets'],
-    target: 5,
-    extras: ['Optional: LC 933 (made optional), 237 and 19 (other "remove a node" variants), 160, 42 (hard stretch)'],
-    practice: { oop: 'bank-account', reading: ['find-max', 'is-sorted'], behavioral: ['cs-team-poorly', 'cs-led'], product: 'cs-calendar', project: 'speaklab' },
-  },
-  {
-    date: '2026-11-27', theme: 'Sorting, binary search, testing, and the historical "missing number"',
-    focus: 'Sorting and binary search; intervals. Today’s skill: test by input class and respond to hints. Missing Number has four correct approaches — explain the trade-offs. OOP: references, collections and validation with the library system.',
-    lessons: ['big-o/classes', 'search-sort/binary-search', 'search-sort/bounds', 'search-sort/sorting', 'patterns/intervals', 'solving/testing-hints', 'oop/references-collections'],
-    terms: ['binary-search', 'lower-bound', 'upper-bound', 'off-by-one', 'stable-ordering', 'range', 'reference'],
-    drills: ['binary-search-drill', 'sorting-then-scan', 'halving'],
-    patterns: ['search-sorted', 'overlapping-ranges'],
-    target: 5,
-    extras: ['Optional: LC 283 and 27 (same read/write pointer as LC 26)'],
-    practice: { oop: 'library', reading: ['dedupe-keep-order', 'second-largest'], behavioral: ['cs-conflict', 'cs-little-guidance'], product: 'gh-test-pen', project: 'zbxp' },
-  },
-  {
-    date: '2026-11-28', theme: 'Recursion, backtracking, and tree basics',
-    focus: 'Recursion/backtracking, trees basics. The heaviest lesson day: do recursion → backtracking → permutations → combinations/subsets before the tree lessons, and stop after LC 46 and 78 if time runs short. Invert Binary Tree (historical) is the quickest tree recursion. OOP: copying and cloning, then the parking lot.',
-    lessons: ['recursion/basics', 'big-o/recursion-space', 'recursion/backtracking', 'recursion/permutations', 'recursion/combinations-subsets', 'recursion/duplicates', 'recursion/digit-grouping', 'trees/terminology', 'trees/dfs', 'oop/copying'],
-    terms: ['recursion', 'base-case', 'backtracking', 'permutation', 'combination', 'subset', 'factorial', 'depth', 'height', 'deep-copy'],
-    drills: ['factorial-recursion', 'fib-naive', 'subsets-enum', 'permutations-enum', 'tree-dfs'],
-    patterns: ['generate-arrangements', 'choose-k', 'all-subsets', 'group-digit-perms'],
-    target: 5,
-    extras: ['Optional: LC 138 Copy List with Random Pointer (deep copy by hand)'],
-    practice: { oop: 'parking-lot', reading: ['count-words'], behavioral: ['cs-persistence', 'cs-technical-competence'], product: 'cs-remote-comms', project: 'road-report' },
-  },
-  {
-    date: '2026-11-29', theme: 'Prefix sums, Kadane, digit simulation; timed mock',
-    focus: 'Prefix sums and Kadane (basic DP is a secondary topic — understand the idea, do not drill variants). Digit simulation covers Add Strings and the historical clock-angle question. Guided Canva OOP today; the independent attempt is tomorrow.',
-    lessons: ['patterns/prefix-sums', 'patterns/kadane', 'patterns/dp', 'solving/math-simulation'],
-    terms: ['prefix', 'subarray', 'memoization', 'state', 'transition'],
-    drills: ['prefix-hash', 'fib-naive'],
-    patterns: ['count-subarrays-k', 'max-contiguous-sum', 'ways-to-climb'],
-    target: 5,
-    extras: ['Timed 45-minute technical mock', 'Optional: LC 9 Palindrome Number, LC 2 Add Two Numbers'],
-    practice: { oop: 'canva', reading: ['palindrome-check'], behavioral: ['cs-adapted-style', 'cs-why-hire'], product: 'gh-calculator-vi', project: 'speaklab' },
-  },
-  {
-    date: '2026-11-30', theme: 'Validate BST, BFS/DFS overview (secondary), Canva OOP, behavioral & product',
-    focus: 'Validate BST (DFS passing bounds) and Flood Fill. Graphs and heaps are secondary: read the overview lessons, skip the optional problems unless everything else is solid. Main event: the Canva OOP challenge independently, timed (45 min). Then project explanations and behavioral.',
-    lessons: ['trees/bfs', 'graphs/representation', 'graphs/traversal', 'patterns/heaps', 'patterns/oop'],
-    terms: ['invariant', 'bfs', 'dfs', 'connected-component', 'visited', 'shortest-path', 'directed-graph'],
-    drills: ['grid-bfs', 'heap-topk'],
-    patterns: ['connected-cells', 'unweighted-shortest', 'k-largest'],
-    target: 2,
-    extras: ['Canva OOP challenge: independent, 45-minute timer', 'Project explanations: 30 s / 60 s / 2 min for all three', 'Optional: LC 200 (made optional), 994, 215, 207, 23'],
-    practice: { oop: 'canva', behavioral: ['cs-pm-or-swe', 'cs-tick'], product: 'cs-app-scope-market', project: 'zbxp' },
-  },
-  {
-    date: '2026-12-01', theme: 'Mistake review, two blind mocks, rest',
-    focus: 'No new topics. Clear the review queue, reread your mistake log, do today’s blind assessments as two short mocks (talk out loud, 25 minutes each), and re-explain one project. Then rest.',
-    lessons: [],
-    terms: ['trade-off', 'invariant', 'edge-case', 'auxiliary-space'],
-    drills: ['sliding-window-amortized', 'permutations-enum', 'group-anagrams-count'],
-    patterns: ['count-subarrays-k', 'group-digit-perms', 'small-n-check'],
-    target: 0,
-    extras: ['Two blind assessments as timed mocks', 'Read the mistake log', 'Clear the review queue', 'Rest'],
-    practice: { behavioral: ['cs-why-hire'], product: 'cs-remote-phone', project: 'road-report' },
-  },
+];
+
+export const schedule: StudyDay[] = [
+  ...studiedDays,
+  // Nov 25 – Dec 1: derived from the seven-day bootcamp so the tracker and the bootcamp always agree.
+  ...bootcampDays.map(studyDayFromBootcamp),
   {
     date: '2026-12-02', theme: 'Interview day',
     focus: 'Interview-day checklist and short warm-up only.',
@@ -163,3 +94,35 @@ export const interviewDayChecklist = [
   'If you get a hint or a correction, acknowledge it, restate it, and re-derive out loud — reported candidates recovered this way.',
   'It is fine to say "Let me think out loud for a moment."',
 ];
+
+/**
+ * A bootcamp day as a StudyDay. `lessons` lists only lessons taught for the first time that day
+ * (recaps of earlier lessons live only in the bootcamp), so each Phase 1/2 lesson is scheduled once.
+ */
+function studyDayFromBootcamp(day: BootcampDay): StudyDay {
+  const earlier = new Set(studiedDays.flatMap((d) => d.lessons));
+  for (const d of bootcampDays) {
+    if (d.day >= day.day) break;
+    for (const a of d.activities) if (a.kind === 'lesson') earlier.add(a.refs[0]);
+  }
+  const of = (kind: string) => day.activities.filter((a) => a.kind === kind);
+  const firstRef = (kind: string) => of(kind)[0]?.refs[0];
+  return {
+    date: day.date,
+    theme: day.title,
+    focus: day.focus,
+    lessons: [...new Set(of('lesson').filter((a) => !a.recap && !earlier.has(a.refs[0])).map((a) => a.refs[0]))],
+    terms: [...new Set(of('terms').flatMap((a) => a.refs))],
+    drills: [...new Set(of('drill').map((a) => a.refs[0]))],
+    patterns: [...new Set(of('patterns').flatMap((a) => a.refs))],
+    target: of('problem').filter((a) => a.tier === 'core' && getProblem(Number(a.refs[0]))?.date === day.date).length,
+    extras: [...of('decoder'), ...of('mock')].map((a) => a.title),
+    practice: {
+      oop: firstRef('oop'),
+      reading: of('reading').map((a) => a.refs[0]),
+      behavioral: of('behavioral').map((a) => a.refs[0]),
+      product: firstRef('product'),
+      project: firstRef('project'),
+    },
+  };
+}

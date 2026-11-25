@@ -198,14 +198,8 @@ export function MockSessionView({ id }: { id: string }) {
 
 const SOURCE_LABEL = { 'colorstack-reported': 'ColorStack-reported', 'github-historical': 'Historical report', general: 'General' } as const;
 
-export function BehavioralHub() {
-  const progress = useProgress();
-  const [promptId, setPromptId] = useState(behavioralPrompts[0].id);
-  const prompt = behavioralPrompts.find((p) => p.id === promptId)!;
-  const bank = (slot: string) => progress.stories.find((s) => s.id === `bank:${slot}`);
-  const others = progress.stories.filter((s) => !s.id.startsWith('bank:'));
-
-  const editBank = (slot: string, title: string, field: string, value: string) => update((p) => {
+function editBank(slot: string, title: string, field: string, value: string) {
+  update((p) => {
     const id = `bank:${slot}`;
     const existing = p.stories.find((s) => s.id === id);
     const story: Story = existing
@@ -213,6 +207,75 @@ export function BehavioralHub() {
       : { id, promptId: slot, title, fields: { [field]: value }, updatedAt: Date.now() };
     return { ...p, stories: existing ? p.stories.map((s) => (s.id === id ? story : s)) : [...p.stories, story] };
   });
+}
+
+function setProduct(name: string, field: string, value: string) {
+  update((p) => ({ ...p, projects: { ...p.projects, [name]: { ...(p.projects[name] ?? {}), [field]: value } } }));
+}
+
+/** One reusable STAR story (stored in the story bank as "bank:<slot>"). Shared by the hub and the bootcamp. */
+export function StorySlotEditor({ slotId, open = false }: { slotId: string; open?: boolean }) {
+  const progress = useProgress();
+  const slot = storySlots.find((x) => x.id === slotId)!;
+  const story = progress.stories.find((s) => s.id === `bank:${slot.id}`);
+  const filled = starFields.filter((f) => (story?.fields[f.id] ?? '').trim()).length;
+  const wordsCount = Object.values(story?.fields ?? {}).join(' ').split(/\s+/).filter(Boolean).length;
+  const answers = behavioralPrompts.filter((b) => b.slot === slot.id && b.source === 'colorstack-reported');
+  return (
+    <details id={`story-${slot.id}`} className="card" style={{ padding: 'var(--s4) var(--s5)' }} open={open}>
+      <summary>{slot.title} <span className="meta" style={{ marginLeft: 'auto' }}>{filled}/{starFields.length} · ~{Math.round(wordsCount / 2.5)}s</span></summary>
+      <p className="small muted" style={{ marginTop: 'var(--s2)' }}>Covers: {slot.covers}</p>
+      <ul className="small">{slot.seeds.map((x) => <li key={x}>{x}</li>)}</ul>
+      {answers.length > 0 && <p className="tiny muted">Reported questions it answers: {answers.map((a) => `“${a.prompt}”`).join(' · ')}</p>}
+      <div className="grid-2" style={{ gap: 'var(--s3)' }}>
+        {starFields.map((f) => (
+          <label key={f.id} className="field">{f.label} <span className="hint">{f.hint}</span>
+            <textarea value={story?.fields[f.id] ?? ''} onChange={(e) => editBank(slot.id, slot.title, f.id, e.target.value)} />
+          </label>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+/** One product / testing prompt with its framework steps. Answers are stored under "product:<id>". */
+export function ProductPromptCard({ id, open = false }: { id: string; open?: boolean }) {
+  const progress = useProgress();
+  const pp = productPrompts.find((x) => x.id === id)!;
+  const store = `product:${pp.id}`;
+  const steps = productSteps(pp);
+  const filled = steps.filter((_, i) => (progress.projects[store]?.[String(i)] ?? '').trim()).length;
+  return (
+    <details id={pp.id} className="card" style={{ padding: 'var(--s4) var(--s5)' }} open={open}>
+      <summary>{pp.prompt} <span className="meta" style={{ marginLeft: 'auto' }}>{SOURCE_LABEL[pp.source]} · {frameworks[pp.framework].name} · {filled}/{steps.length}</span></summary>
+      <div className="stack" style={{ gap: 'var(--s3)' }}>
+        {steps.map((stepText, i) => (
+          <label key={i} className="field">{i + 1}. {stepText}
+            <textarea style={{ minHeight: 56 }} value={progress.projects[store]?.[String(i)] ?? ''} onChange={(e) => setProduct(store, String(i), e.target.value)} />
+          </label>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+/** The three product frameworks side by side. */
+export function ProductFrameworks() {
+  return (
+    <div className="grid-3" style={{ marginBottom: 'var(--s4)' }}>
+      {(['circles', 'testing', 'explain'] as const).map((k) => (
+        <div key={k} className="fact"><div className="k">{frameworks[k].name}</div><ol className="small" style={{ margin: 0, paddingLeft: 18 }}>{frameworks[k].steps.map((x) => <li key={x}>{x}</li>)}</ol></div>
+      ))}
+    </div>
+  );
+}
+
+export function BehavioralHub() {
+  const progress = useProgress();
+  const [promptId, setPromptId] = useState(behavioralPrompts[0].id);
+  const prompt = behavioralPrompts.find((p) => p.id === promptId)!;
+  const others = progress.stories.filter((s) => !s.id.startsWith('bank:'));
+
   const addStory = () => {
     const story: Story = { id: `s-${Date.now().toString(36)}`, promptId, title: prompt.prompt, fields: {}, updatedAt: Date.now() };
     update((p) => ({ ...p, stories: [...p.stories, story] }));
@@ -222,8 +285,6 @@ export function BehavioralHub() {
   const removeStory = (sid: string) => {
     if (window.confirm('Delete this story card?')) update((p) => ({ ...p, stories: p.stories.filter((s) => s.id !== sid) }));
   };
-  const setProduct = (name: string, field: string, value: string) =>
-    update((p) => ({ ...p, projects: { ...p.projects, [name]: { ...(p.projects[name] ?? {}), [field]: value } } }));
   const reported = behavioralPrompts.filter((p) => p.source === 'colorstack-reported');
 
   return (
@@ -238,27 +299,7 @@ export function BehavioralHub() {
       <section className="section" style={{ marginTop: 0 }}>
         <div className="section-title" style={{ marginTop: 0 }}><h2>Story bank</h2><span className="tiny muted">{frameworks.star.name}: {frameworks.star.steps.join(' · ')} — plus a one-line reflection</span></div>
         <div className="stack" style={{ gap: 'var(--s2)' }}>
-          {storySlots.map((slot) => {
-            const story = bank(slot.id);
-            const filled = starFields.filter((f) => (story?.fields[f.id] ?? '').trim()).length;
-            const wordsCount = Object.values(story?.fields ?? {}).join(' ').split(/\s+/).filter(Boolean).length;
-            const answers = behavioralPrompts.filter((b) => b.slot === slot.id && b.source === 'colorstack-reported');
-            return (
-              <details key={slot.id} id={`story-${slot.id}`} className="card" style={{ padding: 'var(--s4) var(--s5)' }}>
-                <summary>{slot.title} <span className="meta" style={{ marginLeft: 'auto' }}>{filled}/{starFields.length} · ~{Math.round(wordsCount / 2.5)}s</span></summary>
-                <p className="small muted" style={{ marginTop: 'var(--s2)' }}>Covers: {slot.covers}</p>
-                <ul className="small">{slot.seeds.map((x) => <li key={x}>{x}</li>)}</ul>
-                {answers.length > 0 && <p className="tiny muted">Reported questions it answers: {answers.map((a) => `“${a.prompt}”`).join(' · ')}</p>}
-                <div className="grid-2" style={{ gap: 'var(--s3)' }}>
-                  {starFields.map((f) => (
-                    <label key={f.id} className="field">{f.label} <span className="hint">{f.hint}</span>
-                      <textarea value={story?.fields[f.id] ?? ''} onChange={(e) => editBank(slot.id, slot.title, f.id, e.target.value)} />
-                    </label>
-                  ))}
-                </div>
-              </details>
-            );
-          })}
+          {storySlots.map((slot) => <StorySlotEditor key={slot.id} slotId={slot.id} />)}
         </div>
       </section>
 
@@ -278,29 +319,9 @@ export function BehavioralHub() {
 
       <section className="section">
         <div className="section-title" style={{ marginTop: 0 }}><h2>Product design and testing</h2><span className="tiny muted">One interview may be with a PM — reported by ColorStack</span></div>
-        <div className="grid-3" style={{ marginBottom: 'var(--s4)' }}>
-          {(['circles', 'testing', 'explain'] as const).map((k) => (
-            <div key={k} className="fact"><div className="k">{frameworks[k].name}</div><ol className="small" style={{ margin: 0, paddingLeft: 18 }}>{frameworks[k].steps.map((x) => <li key={x}>{x}</li>)}</ol></div>
-          ))}
-        </div>
+        <ProductFrameworks />
         <div className="stack" style={{ gap: 'var(--s2)' }}>
-          {productPrompts.map((pp) => {
-            const store = `product:${pp.id}`;
-            const steps = productSteps(pp);
-            const filled = steps.filter((_, i) => (progress.projects[store]?.[String(i)] ?? '').trim()).length;
-            return (
-              <details key={pp.id} id={pp.id} className="card" style={{ padding: 'var(--s4) var(--s5)' }}>
-                <summary>{pp.prompt} <span className="meta" style={{ marginLeft: 'auto' }}>{SOURCE_LABEL[pp.source]} · {frameworks[pp.framework].name} · {filled}/{steps.length}</span></summary>
-                <div className="stack" style={{ gap: 'var(--s3)' }}>
-                  {steps.map((stepText, i) => (
-                    <label key={i} className="field">{i + 1}. {stepText}
-                      <textarea style={{ minHeight: 56 }} value={progress.projects[store]?.[String(i)] ?? ''} onChange={(e) => setProduct(store, String(i), e.target.value)} />
-                    </label>
-                  ))}
-                </div>
-              </details>
-            );
-          })}
+          {productPrompts.map((pp) => <ProductPromptCard key={pp.id} id={pp.id} />)}
         </div>
       </section>
 

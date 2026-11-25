@@ -8,10 +8,21 @@ import { getOopChallenge, oopChallenges } from '@/content/oop-challenges';
 import { codeReadings, getCodeReading } from '@/content/code-reading';
 import { behavioralPrompts, productPrompts, storySlots } from '@/content/mocks';
 import { getProject, projects } from '@/content/projects';
+import { bootcampDayByDate } from '@/content/bootcamp';
 
 /** First date on which a lesson appears in the schedule, or undefined. */
 function lessonDate(key: string): string | undefined {
   return schedule.find((d) => d.lessons.includes(key))?.date;
+}
+
+/**
+ * Lessons studied on a date: the schedule's new lessons plus, on bootcamp days, the recaps the
+ * bootcamp schedules that day (recaps are not re-listed in the schedule, which keeps each lesson once).
+ */
+function lessonsStudiedOn(date: string): string[] {
+  const day = schedule.find((d) => d.date === date)!;
+  const recaps = bootcampDayByDate(date)?.activities.filter((a) => a.kind === 'lesson').map((a) => a.refs[0]) ?? [];
+  return [...day.lessons, ...recaps];
 }
 
 describe('catalog matches the source study-plan file exactly', () => {
@@ -24,12 +35,16 @@ describe('catalog matches the source study-plan file exactly', () => {
   const norm = (s: string) => s.replace(/[–—]/g, '-').toLowerCase();
   const D = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
 
-  it('has 18 first-wave and 17 supporting plan problems; everything else is a labeled ColorStack addition', () => {
+  it('has 18 first-wave and 17 supporting plan problems; everything else is a labeled ColorStack or bootcamp addition', () => {
     expect(first).toHaveLength(18);
     expect(supp).toHaveLength(17);
-    const plan = problems.filter((p) => p.origin !== 'colorstack');
+    const plan = problems.filter((p) => p.origin !== 'colorstack' && p.origin !== 'bootcamp');
     expect(plan.map((p) => p.id).sort((a, b) => a - b)).toEqual([...first, ...supp].map((p) => p.id).sort((a, b) => a - b));
     for (const p of problems.filter((x) => x.origin === 'colorstack')) expect(p.evidence?.length, String(p.id)).toBeGreaterThan(0);
+    // Learner-requested bootcamp additions are not interview evidence and must not claim any.
+    const bootcamp = problems.filter((x) => x.origin === 'bootcamp');
+    expect(bootcamp.map((p) => p.id)).toEqual([102]);
+    for (const p of bootcamp) expect(p.evidence, String(p.id)).toBeUndefined();
   });
 
   it('titles, difficulties and priority tiers match', () => {
@@ -60,12 +75,12 @@ describe('daily assignments are teachable in order', () => {
     }
   });
 
-  it("each problem matches its day's concepts (a prerequisite or its primary module is taught that day)", () => {
+  it("each problem matches its day's concepts (a prerequisite or its primary module is studied that day)", () => {
     for (const p of problems) {
-      const day = schedule.find((d) => d.date === p.date)!;
+      const studied = lessonsStudiedOn(p.date);
       const primary = p.prereqs[0].split('/')[0];
-      const sameDayPrereq = p.prereqs.some((k) => day.lessons.includes(k));
-      const primaryTaught = day.lessons.some((k) => k.startsWith(`${primary}/`));
+      const sameDayPrereq = p.prereqs.some((k) => studied.includes(k));
+      const primaryTaught = studied.some((k) => k.startsWith(`${primary}/`));
       expect(sameDayPrereq || primaryTaught, `${p.id} (${primary}) on ${p.date}`).toBe(true);
     }
   });
@@ -79,9 +94,9 @@ describe('daily assignments are teachable in order', () => {
     }
   });
 
-  it('most problems are taught by a lesson on the same day', () => {
-    const same = problems.filter((p) => p.prereqs.some((k) => schedule.find((d) => d.date === p.date)!.lessons.includes(k)));
-    expect(problems.length - same.length).toBeLessThanOrEqual(1); // LC 98 applies Nov 28 tree lessons on Nov 30
+  it('most problems are taught by a lesson (or a bootcamp recap) on the same day', () => {
+    const same = problems.filter((p) => p.prereqs.some((k) => lessonsStudiedOn(p.date).includes(k)));
+    expect(problems.length - same.length).toBeLessThanOrEqual(1);
   });
 
   it('every Phase 1 and Phase 2 lesson is scheduled exactly once', () => {
@@ -146,9 +161,10 @@ describe('scope correction (Nov 25): practice content is wired correctly', () =>
     expect(canva.evidence).toBe('colorstack-reported');
     expect(canva.requirements).toHaveLength(10);        // the ten visible requirements from the source
     expect(canva.inferred.length).toBeGreaterThan(3);   // everything else is labeled as inferred
-    // Canva is assigned on a day at or after every OOP lesson.
+    // Canva is assigned on a day at or after every OOP lesson. The bootcamp teaches oop/copying earlier the
+    // same day (tests/bootcamp.test.ts checks that a challenge comes after its lessons within a day).
     const canvaDay = schedule.find((d) => d.practice?.oop === 'canva')!.date;
-    for (const k of ['oop/classes-objects', 'oop/inheritance-composition', 'oop/references-collections', 'oop/copying']) expect(lessonDate(k)! < canvaDay, k).toBe(true);
+    for (const k of ['oop/classes-objects', 'oop/inheritance-composition', 'oop/references-collections', 'oop/copying']) expect(lessonDate(k)! <= canvaDay, k).toBe(true);
   });
 
   it('blind assessments never name their pattern and only unlock after their lessons', () => {

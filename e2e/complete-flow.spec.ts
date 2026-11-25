@@ -1,72 +1,94 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { bootcampDays } from '../content/bootcamp';
 
 /**
- * The full daily loop on Nov 21:
- * learn a concept → understand terminology → identify the pattern → analyze Big-O
- * → solve the assigned LeetCode problem → record progress → revisit a miss.
+ * The bootcamp acceptance criterion: open the platform on a study day, press Continue Studying, and
+ * finish the session with Complete & Continue (or Skip for now) — never searching for anything.
+ * The date is controlled with page.clock, which useToday() reads through `new Date()`.
  */
-test('learn → vocabulary → pattern → Big-O → solve → record → review', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-11-21T10:00:00'));
-  const step = (label: string) => page.locator('.seq-step', { hasText: label });
+async function onDay(page: Page, iso: string) {
+  await page.clock.setFixedTime(new Date(`${iso}T10:00:00`));
+}
 
-  // 1. Start from the dashboard and open today's canonical-keys lesson.
+async function expectRealContent(page: Page, id: string) {
+  await expect(page.locator('.player-top'), id).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 }).first(), id).toBeVisible();
+  const text = (await page.locator('.player-body').innerText()).trim();
+  expect(text.length, `${id} renders real content`).toBeGreaterThan(80);
+}
+
+test('Day 1: Continue Studying, then Complete & Continue / Skip through to the end-of-day review', async ({ page, isMobile }) => {
+  test.skip(!!isMobile, 'the full walk runs once, on desktop');
+  test.setTimeout(240_000);
+  await onDay(page, '2026-11-25');
   await page.goto('/');
-  await expect(step('Learn')).toContainText('0/9');
-  await page.locator('#today-lessons').getByRole('link', { name: /Grouping with canonical keys/ }).click();
-  await expect(page).toHaveURL(/\/learn\/hashing\/canonical-keys/);
-  await page.locator('#check .choice').nth(1).click(); // Q1: correct answer is B ('eilnst')
-  await expect(page.locator('#check [role="status"]').first()).toContainText('Correct');
-  await page.getByRole('button', { name: 'Mark complete' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Day 1 of 7');
+  await page.getByRole('link', { name: 'Continue Studying' }).click();
+  await page.waitForURL(/\/study\//);
 
-  // 2. Terminology: the term page teaches the decision checks, then a knowledge check.
-  await page.goto('/dictionary/canonical-key');
-  await expect(page.getByText('Check before choosing')).toBeVisible();
-  await page.locator('.choice').nth(1).click();
+  const seen = new Map<string, number>();
+  let recordedProblem = false;
+  let reloaded = false;
+  for (let step = 0; step < 80; step++) {
+    const url = new URL(page.url());
+    if (url.pathname === '/') break;
+    const id = url.pathname.split('/').pop()!;
+    seen.set(id, (seen.get(id) ?? 0) + 1);
+    await expectRealContent(page, id);
+    await expect(page.locator('.player-pos')).toContainText('Day 1 · Activity');
 
-  // 3. Pattern recognition with a reason.
-  await page.goto('/patterns#group-digit-perms');
-  const sc = page.locator('#group-digit-perms');
-  await sc.getByRole('button', { name: 'Backtracking' }).click(); // the keyword trap
-  await sc.getByLabel(/Why does this pattern fit/).fill('it says rearrangements so generate permutations');
-  await sc.getByRole('button', { name: 'Check my reasoning' }).click();
-  await expect(sc).toContainText('A different pattern fits better');
+    // The resume position survives a reload, and Continue Studying returns to it.
+    if (!reloaded && seen.size === 5) {
+      reloaded = true;
+      await page.reload();
+      await expectRealContent(page, id);
+      await page.goto('/');
+      await expect(page.getByRole('link', { name: 'Continue Studying' })).toHaveAttribute('href', `/study/${id}`);
+      await page.getByRole('link', { name: 'Continue Studying' }).click();
+      await page.waitForURL(`**/study/${id}`);
+      await expectRealContent(page, id);
+    }
 
-  // 4. Big-O drill.
-  await page.goto('/big-o/group-anagrams-count');
-  await page.getByRole('group', { name: 'Time complexity' }).getByRole('button', { name: 'O(n · k)', exact: true }).click();
-  await page.getByRole('group', { name: 'Space complexity' }).getByRole('button', { name: 'O(n · k)', exact: true }).click();
-  await page.locator('.choice').nth(1).click();
-  await page.getByLabel(/Explain why/).fill('n words, each counted in O(k); the 26-slot key is constant');
-  await page.getByRole('button', { name: 'Submit analysis' }).click();
-  await expect(page.getByText('Time: O(n · k)')).toBeVisible();
+    const complete = page.getByRole('button', { name: /Complete & Continue|^Continue/ });
+    // Gating: a problem needs a recorded status. Record one problem honestly to exercise the gate.
+    if (id.startsWith('d1-lc-') && !recordedProblem) {
+      await expect(complete).toBeDisabled();
+      await expect(page.getByRole('link', { name: /Open on LeetCode/ })).toHaveAttribute('target', '_blank');
+      await page.getByRole('button', { name: /Show hint 1/ }).click(); // a hint alone does not unlock it
+      await expect(complete).toBeDisabled();
+      await page.getByRole('group', { name: 'Problem status' }).getByRole('button', { name: 'Attempted' }).click();
+      recordedProblem = true;
+    }
+    const nextLink = page.locator('.player-next a');
+    await expect(nextLink).toBeVisible(); // the next activity is precomputed and linked
+    if (await complete.isEnabled()) await complete.click();
+    else await page.getByRole('button', { name: 'Skip for now' }).click();
+    await page.waitForURL((u) => u.pathname !== `/study/${id}`);
+  }
 
-  // 5–6. Prep page → LeetCode link → record the result.
-  await page.goto('/tracker/49');
-  await expect(page.getByRole('link', { name: /Open on LeetCode/ })).toHaveAttribute('href', 'https://leetcode.com/problems/group-anagrams/');
-  await expect(page.getByRole('link', { name: /Grouping with canonical keys/ })).toBeVisible(); // prerequisite lesson
-  await page.getByRole('button', { name: 'Solved Independently' }).click();
-  await page.getByLabel(/Approach you used/).fill('defaultdict(list) keyed by tuple of 26 counts');
+  // Every Day 1 activity was visited; the end-of-day review came last, after skipped items returned.
+  const day1 = bootcampDays[0].activities.map((a) => a.id);
+  const deferred = await (async () => { await page.goto('/'); return page.locator('.plan-row.deferred').count(); })();
+  expect(seen.size).toBeGreaterThanOrEqual(day1.length - deferred);
+  expect([...seen.keys()].at(-1)).toBe('d1-wrap-end-of-day');
+  expect([...seen.values()].some((n) => n > 1)).toBe(true); // skipped work came back before the review
+  await expect(page).toHaveURL(/\/$/);
+  // Progress persisted: completed items show as done, and skipped gated items remain to do.
+  await page.reload();
+  await expect(page.locator('#today-activities .status', { hasText: 'Done' }).first()).toBeVisible();
+  await expect(page.locator('#today-activities')).toContainText('Skipped');
+});
 
-  // Dashboard reflects every step.
-  await page.goto('/');
-  await expect(step('Learn')).toContainText('1/9');
-  await expect(step('Understand vocabulary')).toContainText('1/7');
-  await expect(step('Analyze complexity')).toContainText('1/6');
-  await expect(step('Recognize pattern')).toContainText('1/3');
-  await expect(step('Solve on LeetCode')).toContainText('1/3');
-
-  // 7. The missed pattern is queued for review; retrying it keeps the miss history.
-  await page.goto('/review');
-  await expect(page.locator('section', { hasText: 'Due now' })).toContainText('Group a list of three-digit integers');
-  await page.goto('/patterns#group-digit-perms');
-  await expect(sc).toContainText('Last: revisit'); // the earlier miss is remembered; the card is ready for a new attempt
-  await sc.getByRole('button', { name: 'Hash map' }).click();
-  await sc.getByLabel(/Why does this pattern fit/).fill('group by a canonical digit-count key');
-  await sc.getByRole('button', { name: 'Check my reasoning' }).click();
-  await expect(sc).toContainText('Strong choice');
-  await page.goto('/review');
-  await expect(page.locator('section', { hasText: 'Recovered' })).toContainText('missed 1×');
-  await page.goto('/');
-  await expect(step('Learn')).toContainText('1/9'); // earlier progress intact
-  await expect(step('Solve on LeetCode')).toContainText('1/3');
+test('every day’s first activity loads from its day card', async ({ page }) => {
+  test.setTimeout(120_000);
+  await onDay(page, '2026-11-25');
+  for (const d of bootcampDays) {
+    await page.goto('/');
+    const card = page.getByRole('article', { name: new RegExp(`^Day ${d.day}:`) });
+    await expect(card).toBeVisible();
+    await card.getByRole('link', { name: /Start|Continue|Review/ }).click();
+    await page.waitForURL(`**/study/${d.activities[0].id}`);
+    await expectRealContent(page, d.activities[0].id);
+    await expect(page.locator('.player-pos')).toContainText(`Day ${d.day} · Activity 1 of`);
+  }
 });

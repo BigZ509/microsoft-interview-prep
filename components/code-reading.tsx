@@ -27,7 +27,7 @@ export function CodeReadingPage() {
   );
 }
 
-function ReadingCard({ reading: r, today: date }: { reading: CodeReading; today: string }) {
+export function ReadingCard({ reading: r, today: date }: { reading: CodeReading; today: string }) {
     const progress = useProgress();
     const key = `read:${r.id}`;
     const rec = practiceRecord(progress, key);

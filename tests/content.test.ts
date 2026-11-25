@@ -143,8 +143,12 @@ describe('LeetCode catalog', () => {
   const firstWave = [49, 242, 46, 1, 217, 169, 206, 21, 141, 167, 88, 232, 933, 20, 155, 56, 53, 3];
   const supporting = [121, 14, 1768, 1200, 704, 35, 733, 104, 100, 98, 78, 70, 560, 200, 994, 215, 207];
 
-  const planProblems = problems.filter((p) => p.origin !== 'colorstack');
-  const demoted = [933, 200]; // made optional by the Nov 25 scope correction (secondary topic / niche)
+  const planProblems = problems.filter((p) => p.origin !== 'colorstack' && p.origin !== 'bootcamp');
+  // Made optional by the Nov 25 scope correction (933, 200) or by the seven-day bootcamp, which lists
+  // these as reinforcement / "if time permits" topics (155, 56, 53, 70, 733, 560).
+  const demoted = [933, 200, 155, 56, 53, 70, 733, 560];
+  // ColorStack additions the bootcamp made optional (reinforcement or stretch on their day).
+  const demotedAdditions = [83, 415, 1344];
 
   it('imports exactly the problems from the study plan, deduplicated', () => {
     const ids = planProblems.map((p) => p.id).sort((a, b) => a - b);
@@ -165,7 +169,12 @@ describe('LeetCode catalog', () => {
       expect([p.wave, p.priority], String(id)).toEqual(['Stretch', 'P1']);
       expect(p.demoted!.length, String(id)).toBeGreaterThan(40);
     }
-    expect(problems.filter((p) => p.demoted).map((p) => p.id).sort((a, b) => a - b)).toEqual([200, 933]);
+    for (const id of demotedAdditions) {
+      const p = getProblem(id)!;
+      expect([p.wave, p.priority], String(id)).toEqual(['Stretch', 'P1']);
+      expect(p.demoted!.length, String(id)).toBeGreaterThan(40);
+    }
+    expect(problems.filter((p) => p.demoted).map((p) => p.id).sort((a, b) => a - b)).toEqual([...demoted, ...demotedAdditions].sort((a, b) => a - b));
   });
 
   it('ColorStack additions carry evidence, and hard / advanced ones are optional', () => {
@@ -176,6 +185,8 @@ describe('LeetCode catalog', () => {
       if (p.difficulty === 'Hard') expect(p.wave, String(p.id)).toBe('Stretch');
       if (p.wave !== 'Stretch') expect(p.priority, String(p.id)).toBe('P0');
     }
+    // The bootcamp lists Move Zeroes (Day 2) and Delete Node in a Linked List (Day 3) as priority problems.
+    for (const id of [283, 237]) expect([getProblem(id)!.wave, getProblem(id)!.priority], String(id)).toEqual(['Supporting', 'P0']);
     // Every ColorStack-reported LeetCode question is in the catalog and is core (not optional).
     for (const id of [13, 1, 167, 21, 203]) {
       const p = getProblem(id)!;

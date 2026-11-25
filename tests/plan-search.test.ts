@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addDays, countdown, daysBetween, isDateKey } from '@/lib/dates';
-import { assignmentsFor, daySequence, studyDayFor } from '@/lib/plan';
-import { emptyProgress, setLesson, setProblemStatus, updateProblemFields, markTermReviewed } from '@/lib/progress';
+import { assignmentsFor, studyDayFor } from '@/lib/plan';
+import { emptyProgress, setProblemStatus, updateProblemFields } from '@/lib/progress';
 import { search } from '@/lib/search';
 import { INTERVIEW_DATE } from '@/content/schedule';
 
@@ -37,11 +37,15 @@ describe('daily plan', () => {
     const a = assignmentsFor('2026-11-21', emptyProgress());
     expect(a.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([1, 49, 242]);
     expect(a.plannedTarget).toBe(3);
-    const nov30 = assignmentsFor('2026-11-30', emptyProgress());
-    expect(nov30.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([98, 733]);
-    expect(nov30.assigned.filter((p) => p.wave === 'Stretch').map((p) => p.id).sort((x, y) => x - y)).toEqual([23, 200, 207, 215, 994]);
+    // From Nov 25 the dates follow the seven-day bootcamp (content/bootcamp.ts).
+    const nov28 = assignmentsFor('2026-11-28', emptyProgress());
+    expect(nov28.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([98, 100, 102, 104, 226]);
+    const nov29 = assignmentsFor('2026-11-29', emptyProgress());
+    expect(nov29.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([35, 46, 78, 268, 704]);
+    expect(nov29.assigned.filter((p) => p.wave === 'Stretch').map((p) => p.id).sort((x, y) => x - y)).toEqual([2, 9, 23, 53, 56, 70, 200, 207, 215, 415, 733, 994, 1344]);
     const nov25 = assignmentsFor('2026-11-25', emptyProgress());
-    expect(nov25.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([3, 13, 125, 344]);
+    expect(nov25.coreAssigned.map((p) => p.id).sort((x, y) => x - y)).toEqual([13, 344]);
+    expect(assignmentsFor('2026-11-30', emptyProgress()).assigned).toEqual([]); // Day 6 is a simulation day
   });
 
   it('carries over incomplete earlier problems and honors rescheduling', () => {
@@ -51,18 +55,6 @@ describe('daily plan', () => {
     expect(nov22.carried.map((x) => x.id)).toEqual([1]);
     expect(nov22.coreAssigned.map((x) => x.id)).toContain(49);
     expect(nov22.plannedTarget).toBe(5); // planned target is preserved
-  });
-
-  it('builds the Learn → Vocabulary → Big-O → Pattern → Guided → Independent → Review sequence', () => {
-    const { day } = studyDayFor('2026-11-21');
-    let p = setLesson(emptyProgress(), day.lessons[0], { done: true }, '2026-11-21');
-    p = markTermReviewed(p, day.terms[0], '2026-11-21');
-    p = setProblemStatus(p, 49, 'with-help', '2026-11-21');
-    const seq = daySequence(day, p, '2026-11-21');
-    expect(seq.map((s) => s.id)).toEqual(['learn', 'vocab', 'bigo', 'pattern', 'guided', 'independent', 'review']);
-    expect(seq[0]).toMatchObject({ done: 1, total: day.lessons.length });
-    expect(seq[1]).toMatchObject({ done: 1, total: day.terms.length });
-    expect(seq[4]).toMatchObject({ done: 1, total: 3 });
   });
 });
 

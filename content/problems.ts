@@ -3,7 +3,8 @@ import type { Problem } from './types';
 /**
  * LeetCode problems imported from microsoft_explore_study_guide_agent_prompt.md
  * ("LeetCode practice catalog"). IDs, names, difficulty and priority come from the plan.
- * Dates map each problem onto the plan's day-by-day topics (Nov 21 – Dec 2, 2026).
+ * Dates map each problem onto the plan's day-by-day topics: Nov 21–24 as originally studied, and from Nov 25
+ * the seven-day bootcamp (content/bootcamp.ts), so the tracker and the bootcamp agree on every problem's day.
  * Priority/wave reflect the plan's recommendation; they are NOT verified interview-frequency data.
  */
 export const problems: Problem[] = [
@@ -153,7 +154,7 @@ export const problems: Problem[] = [
   // ---------------- Nov 25 — fixed/variable sliding window (LC 121 moved to Nov 22) ----------------
   {
     id: 3, title: 'Longest Substring Without Repeating Characters', slug: 'longest-substring-without-repeating-characters', difficulty: 'Medium',
-    topic: 'Sliding window', pattern: 'Variable-size sliding window', priority: 'P0', wave: 'First wave', date: '2026-11-25',
+    topic: 'Sliding window', pattern: 'Variable-size sliding window', priority: 'P0', wave: 'First wave', date: '2026-11-26',
     why: 'Variable sliding window with a set/map; the canonical amortized O(n) nested-loop example.',
     time: 'O(n)', space: 'O(min(n, a)) where a = alphabet size',
     prereqs: ['sliding-window/variable', 'arrays/subarrays', 'hashing/frequency-maps', 'big-o/amortized'],
@@ -163,7 +164,7 @@ export const problems: Problem[] = [
   // ---------------- Nov 26 — stack, queue, deque ----------------
   {
     id: 20, title: 'Valid Parentheses', slug: 'valid-parentheses', difficulty: 'Easy',
-    topic: 'Stacks & queues', pattern: 'Stack matching', priority: 'P0', wave: 'First wave', date: '2026-11-26',
+    topic: 'Stacks & queues', pattern: 'Stack matching', priority: 'P0', wave: 'First wave', date: '2026-11-27',
     why: 'The canonical stack problem: most recent unmatched opener must close first.',
     time: 'O(n)', space: 'O(n)',
     prereqs: ['stacks-queues/stacks', 'python/collections-basics'],
@@ -173,7 +174,7 @@ export const problems: Problem[] = [
   },
   {
     id: 232, title: 'Implement Queue using Stacks', slug: 'implement-queue-using-stacks', difficulty: 'Easy',
-    topic: 'Stacks & queues', pattern: 'Two stacks (amortized)', priority: 'P0', wave: 'First wave', date: '2026-11-26',
+    topic: 'Stacks & queues', pattern: 'Two stacks (amortized)', priority: 'P0', wave: 'First wave', date: '2026-11-27',
     why: 'FIFO from LIFO; the cleanest amortized-analysis example to explain.',
     time: 'Amortized O(1) per operation (single pop can be O(n))', space: 'O(n)',
     prereqs: ['stacks-queues/queues', 'stacks-queues/stacks', 'big-o/amortized'],
@@ -182,7 +183,7 @@ export const problems: Problem[] = [
   },
   {
     id: 933, title: 'Number of Recent Calls', slug: 'number-of-recent-calls', difficulty: 'Easy',
-    topic: 'Stacks & queues', pattern: 'Queue (deque) as a time window', priority: 'P1', wave: 'Stretch', date: '2026-11-26',
+    topic: 'Stacks & queues', pattern: 'Queue (deque) as a time window', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
     why: 'Practical `collections.deque` use; popleft() is O(1), list.pop(0) is O(n).',
     time: 'Amortized O(1) per ping', space: 'O(w) where w = pings inside the 3000 ms window',
     prereqs: ['stacks-queues/queues', 'python/collections-module', 'sliding-window/fixed'],
@@ -192,17 +193,18 @@ export const problems: Problem[] = [
   },
   {
     id: 155, title: 'Min Stack', slug: 'min-stack', difficulty: 'Medium',
-    topic: 'Stacks & queues', pattern: 'Stack with auxiliary state', priority: 'P0', wave: 'First wave', date: '2026-11-26',
+    topic: 'Stacks & queues', pattern: 'Stack with auxiliary state', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
     why: 'Small data-structure design: store extra state per element to answer queries in O(1).',
     time: 'O(1) per operation', space: 'O(n)',
     prereqs: ['stacks-queues/monotonic', 'stacks-queues/stacks'],
     terms: ['stack', 'minimum', 'state'],
     hints: ['What is the minimum after a pop? You need history, not just one variable.', 'Store, with each pushed value, the minimum of the stack at that moment.', 'Every operation then just reads or writes the top.'],
+    demoted: "Bootcamp (Nov 25 request): Min Stack is not on Day 3's priority list. It is an optional stretch after the stack and queue problems, together with the monotonic-stack lesson it builds on.",
   },
   // ---------------- Nov 27 — sorting and binary search; intervals ----------------
   {
     id: 704, title: 'Binary Search', slug: 'binary-search', difficulty: 'Easy',
-    topic: 'Binary search', pattern: 'Binary search', priority: 'P0', wave: 'Supporting', date: '2026-11-27',
+    topic: 'Binary search', pattern: 'Binary search', priority: 'P0', wave: 'Supporting', date: '2026-11-29',
     why: 'Search-space invariant and off-by-one discipline.',
     time: 'O(log n)', space: 'O(1)',
     prereqs: ['search-sort/binary-search', 'big-o/classes'],
@@ -211,7 +213,7 @@ export const problems: Problem[] = [
   },
   {
     id: 35, title: 'Search Insert Position', slug: 'search-insert-position', difficulty: 'Easy',
-    topic: 'Binary search', pattern: 'Lower bound', priority: 'P0', wave: 'Supporting', date: '2026-11-27',
+    topic: 'Binary search', pattern: 'Lower bound', priority: 'P0', wave: 'Supporting', date: '2026-11-29',
     why: 'Lower-bound binary search — the most reusable binary-search template.',
     time: 'O(log n)', space: 'O(1)',
     prereqs: ['search-sort/bounds', 'search-sort/binary-search'],
@@ -220,18 +222,19 @@ export const problems: Problem[] = [
   },
   {
     id: 56, title: 'Merge Intervals', slug: 'merge-intervals', difficulty: 'Medium',
-    topic: 'Intervals', pattern: 'Sort + scan', priority: 'P0', wave: 'First wave', date: '2026-11-27',
+    topic: 'Intervals', pattern: 'Sort + scan', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'Sort + scan. An Explore report mentioned an overlapping-interval question (unclear whether merge, count or remove).',
     time: 'O(n log n)', space: 'O(n) (output + sort buffer)',
     prereqs: ['patterns/intervals', 'search-sort/sorting', 'python/builtins'],
     terms: ['range', 'sorted', 'edge-case'],
     hints: ['Sort by start time first. Why does that help?', 'After sorting, an interval can only overlap the last merged interval.', 'Overlap when start <= last_end; then extend last_end with max().'],
     candidateReport: 'One Explore report mentioned an overlapping-intervals question; the exact variant (merge, count, or remove) was ambiguous.',
+    demoted: "Bootcamp (Nov 25 request): intervals are not on Day 5's priority list. Merge Intervals is an optional stretch after the sorting lesson: the clearest 'sort first, then one scan' problem.",
   },
   // ---------------- Nov 28 — recursion/backtracking, trees basics (LC 98 moved to Nov 30) ----------------
   {
     id: 46, title: 'Permutations', slug: 'permutations', difficulty: 'Medium',
-    topic: 'Recursion & backtracking', pattern: 'Backtracking (permutations)', priority: 'P0', wave: 'First wave', date: '2026-11-28',
+    topic: 'Recursion & backtracking', pattern: 'Backtracking (permutations)', priority: 'P0', wave: 'First wave', date: '2026-11-29',
     why: 'Backtracking; relevant to generating digit arrangements — but distinct from grouping them.',
     time: 'O(n · n!)', space: 'O(n) auxiliary (recursion + path), O(n · n!) output',
     prereqs: ['recursion/basics', 'recursion/backtracking', 'recursion/permutations', 'big-o/recursion-space'],
@@ -240,7 +243,7 @@ export const problems: Problem[] = [
   },
   {
     id: 78, title: 'Subsets', slug: 'subsets', difficulty: 'Medium',
-    topic: 'Recursion & backtracking', pattern: 'Backtracking (include/exclude)', priority: 'P0', wave: 'Supporting', date: '2026-11-28',
+    topic: 'Recursion & backtracking', pattern: 'Backtracking (include/exclude)', priority: 'P0', wave: 'Supporting', date: '2026-11-29',
     why: 'Subset enumeration: every element is either in or out — 2ⁿ results.',
     time: 'O(n · 2ⁿ)', space: 'O(n) auxiliary, O(n · 2ⁿ) output',
     prereqs: ['recursion/combinations-subsets', 'recursion/backtracking'],
@@ -268,54 +271,68 @@ export const problems: Problem[] = [
   // ---------------- Nov 29 — prefix sums and Kadane; timed mock ----------------
   {
     id: 53, title: 'Maximum Subarray', slug: 'maximum-subarray', difficulty: 'Medium',
-    topic: 'Prefix sums & Kadane', pattern: "Kadane's algorithm", priority: 'P0', wave: 'First wave', date: '2026-11-29',
+    topic: 'Prefix sums & Kadane', pattern: "Kadane's algorithm", priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: "Kadane's rolling best; referenced by one 2026 Explore report.",
     time: 'O(n)', space: 'O(1)',
     prereqs: ['patterns/kadane', 'arrays/subarrays', 'big-o/loops'],
     terms: ['subarray', 'contiguous', 'maximum', 'state'],
     hints: ['For each index, what is the best subarray that ENDS here?', 'Either extend the previous best-ending-here, or start fresh at this element.', 'All-negative input: the answer is the largest single element, not 0.'],
     candidateReport: 'Maximum Subarray was referenced in one 2026 Explore candidate report (anecdotal).',
+    demoted: "Bootcamp (Nov 25 request): basic dynamic programming is a Day 5 secondary topic 'if time permits', so Kadane's Maximum Subarray is a stretch problem.",
   },
   {
     id: 560, title: 'Subarray Sum Equals K', slug: 'subarray-sum-equals-k', difficulty: 'Medium',
-    topic: 'Prefix sums & Kadane', pattern: 'Prefix sum + hash map', priority: 'P0', wave: 'Supporting', date: '2026-11-29',
+    topic: 'Prefix sums & Kadane', pattern: 'Prefix sum + hash map', priority: 'P1', wave: 'Stretch', date: '2026-11-26',
     why: 'Prefix-sum + hashmap intuition; shows why sliding window fails with negative numbers.',
     time: 'O(n)', space: 'O(n)',
     prereqs: ['patterns/prefix-sums', 'hashing/frequency-maps', 'sliding-window/variable'],
     terms: ['prefix', 'subarray', 'target', 'frequency'],
     hints: ['sum(i..j) = prefix[j+1] - prefix[i].', 'At each position, how many earlier prefixes equal current - k?', 'Seed the counter with {0: 1} for subarrays starting at index 0.'],
+    demoted: "Bootcamp (Nov 25 request): prefix sums are not one of Day 2's priority concepts, so this is an optional stretch after the sliding-window lessons. It is also the classic case where a sliding window fails (negative values).",
   },
   {
     id: 70, title: 'Climbing Stairs', slug: 'climbing-stairs', difficulty: 'Easy',
-    topic: 'Dynamic programming', pattern: 'Memoization / 1-D DP', priority: 'P0', wave: 'Supporting', date: '2026-11-29',
+    topic: 'Dynamic programming', pattern: 'Memoization / 1-D DP', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'Gentlest bridge from recursion (Nov 28) to memoization/tabulation; paired with Kadane because both are 1-D DP: a small state plus a transition.',
     time: 'O(n)', space: 'O(1) bottom-up (O(n) with memo)',
     prereqs: ['patterns/dp', 'recursion/basics', 'big-o/recursion-space'],
     terms: ['memoization', 'state', 'transition', 'base-case'],
     hints: ['To reach step n, what was your last move?', 'ways(n) = ways(n-1) + ways(n-2). Why is plain recursion slow?', 'Only the last two values are needed at any time.'],
+    demoted: "Bootcamp (Nov 25 request): basic dynamic programming is a Day 5 secondary topic 'if time permits', so Climbing Stairs is a stretch problem.",
   },
   // ---------------- Nov 30 — BFS/DFS overview (incl. LC 98 tree DFS) ----------------
   {
     id: 98, title: 'Validate Binary Search Tree', slug: 'validate-binary-search-tree', difficulty: 'Medium',
-    topic: 'Trees', pattern: 'DFS with bounds (invariant)', priority: 'P0', wave: 'Supporting', date: '2026-11-30',
-    why: 'Tree invariants with DFS passing bounds down; placed on the DFS/BFS day so it follows the Nov 28 tree lessons instead of overloading that day.',
+    topic: 'Trees', pattern: 'DFS with bounds (invariant)', priority: 'P0', wave: 'Supporting', date: '2026-11-28',
+    why: 'Tree invariants with DFS passing bounds down. Bootcamp Day 4 (Nov 28) lists it as a priority problem, right after the tree DFS lessons.',
     time: 'O(n)', space: 'O(h)',
     prereqs: ['trees/terminology', 'trees/dfs', 'recursion/basics'],
     terms: ['invariant', 'dfs', 'strictly-increasing'],
     hints: ['Checking node.left.val < node.val < node.right.val is not enough. Why?', 'Pass down the allowed (low, high) range for each subtree.', 'Alternative: an inorder traversal of a BST is strictly increasing.'],
   },
   {
+    id: 102, title: 'Binary Tree Level Order Traversal', slug: 'binary-tree-level-order-traversal', difficulty: 'Medium',
+    topic: 'Trees', pattern: 'BFS level by level (queue)', priority: 'P0', wave: 'Supporting', date: '2026-11-28',
+    why: 'Requested in the seven-day bootcamp plan (Day 4). The standard breadth-first tree traversal: process one level at a time with a queue.',
+    time: 'O(n)', space: 'O(n) for the output; the queue holds at most one level (O(w), w = widest level)',
+    prereqs: ['trees/bfs', 'stacks-queues/queues', 'trees/terminology'],
+    terms: ['bfs', 'queue', 'depth', 'traversal'],
+    hints: ['Which structure gives you nodes in the order they were discovered?', 'How can you tell where one level ends and the next begins?', 'Record len(queue) before processing a level; pop exactly that many nodes.'],
+    origin: 'bootcamp',
+  },
+  {
     id: 733, title: 'Flood Fill', slug: 'flood-fill', difficulty: 'Easy',
-    topic: 'Graphs & grids', pattern: 'Grid DFS/BFS', priority: 'P0', wave: 'Supporting', date: '2026-11-30',
+    topic: 'Graphs & grids', pattern: 'Grid DFS/BFS', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'Smallest grid traversal: neighbors, bounds checks, visited logic.',
     time: 'O(m · n)', space: 'O(m · n) worst-case stack/queue',
     prereqs: ['graphs/traversal', 'trees/bfs'],
     terms: ['dfs', 'bfs', 'visited', 'edge-case'],
     hints: ['Which neighbor cells should change?', 'Edge case: if the new color equals the old color, what happens without a guard?', 'Check bounds before reading grid[r][c].'],
+    demoted: "Bootcamp (Nov 25 request): basic graph and matrix traversal are Day 5 secondary topics 'if time permits', so Flood Fill is a stretch problem.",
   },
   {
     id: 200, title: 'Number of Islands', slug: 'number-of-islands', difficulty: 'Medium',
-    topic: 'Graphs & grids', pattern: 'Connected components (grid DFS/BFS)', priority: 'P1', wave: 'Stretch', date: '2026-11-30',
+    topic: 'Graphs & grids', pattern: 'Connected components (grid DFS/BFS)', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'Counting connected components on a grid.',
     time: 'O(m · n)', space: 'O(m · n) worst case',
     prereqs: ['graphs/traversal', 'graphs/representation'],
@@ -325,7 +342,7 @@ export const problems: Problem[] = [
   },
   {
     id: 994, title: 'Rotting Oranges', slug: 'rotting-oranges', difficulty: 'Medium',
-    topic: 'Graphs & grids', pattern: 'Multi-source BFS', priority: 'P1', wave: 'Stretch', date: '2026-11-30',
+    topic: 'Graphs & grids', pattern: 'Multi-source BFS', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'Multi-source BFS measuring time in levels. P1 — attempt only if time allows.',
     time: 'O(m · n)', space: 'O(m · n)',
     prereqs: ['graphs/traversal', 'stacks-queues/queues'],
@@ -334,7 +351,7 @@ export const problems: Problem[] = [
   },
   {
     id: 215, title: 'Kth Largest Element in an Array', slug: 'kth-largest-element-in-an-array', difficulty: 'Medium',
-    topic: 'Heaps', pattern: 'Min-heap of size k (Top-K)', priority: 'P1', wave: 'Stretch', date: '2026-11-30',
+    topic: 'Heaps', pattern: 'Min-heap of size k (Top-K)', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'Top-K with a heap; compare sorting O(n log n) vs heap O(n log k). P1 — optional.',
     time: 'O(n log k)', space: 'O(k)',
     prereqs: ['patterns/heaps', 'python/collections-module'],
@@ -343,7 +360,7 @@ export const problems: Problem[] = [
   },
   {
     id: 207, title: 'Course Schedule', slug: 'course-schedule', difficulty: 'Medium',
-    topic: 'Graphs & grids', pattern: 'Cycle detection (topological order)', priority: 'P1', wave: 'Stretch', date: '2026-11-30',
+    topic: 'Graphs & grids', pattern: 'Cycle detection (topological order)', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'Directed-graph cycle detection. P1 — optional before the interview.',
     time: 'O(V + E)', space: 'O(V + E)',
     prereqs: ['graphs/representation', 'graphs/traversal'],
@@ -371,7 +388,7 @@ export const problems: Problem[] = [
   },
   {
     id: 125, title: 'Valid Palindrome', slug: 'valid-palindrome', difficulty: 'Easy',
-    topic: 'Arrays & strings', pattern: 'Opposite-direction two pointers', priority: 'P0', wave: 'Supporting', date: '2026-11-25',
+    topic: 'Arrays & strings', pattern: 'Opposite-direction two pointers', priority: 'P0', wave: 'Supporting', date: '2026-11-26',
     why: 'Recommended by ColorStack members. Two pointers that skip characters — practice for careful index bounds and `str` methods.',
     time: 'O(n)', space: 'O(1) with two pointers (O(n) if you build a cleaned copy)',
     prereqs: ['two-pointers/opposite', 'arrays/strings', 'solving/characteristics'],
@@ -392,7 +409,7 @@ export const problems: Problem[] = [
   },
   {
     id: 203, title: 'Remove Linked List Elements', slug: 'remove-linked-list-elements', difficulty: 'Easy',
-    topic: 'Linked lists', pattern: 'Dummy node + unlink', priority: 'P0', wave: 'Supporting', date: '2026-11-26',
+    topic: 'Linked lists', pattern: 'Dummy node + unlink', priority: 'P0', wave: 'Supporting', date: '2026-11-27',
     why: 'ColorStack members report "remove a node from a linked list" with the variant unspecified. Removing by value is the general case; the lesson covers the other variants.',
     time: 'O(n)', space: 'O(1)',
     prereqs: ['linked-lists/remove', 'linked-lists/dummy-merge'],
@@ -403,7 +420,7 @@ export const problems: Problem[] = [
   },
   {
     id: 83, title: 'Remove Duplicates from Sorted List', slug: 'remove-duplicates-from-sorted-list', difficulty: 'Easy',
-    topic: 'Linked lists', pattern: 'Compare with next + unlink', priority: 'P0', wave: 'Supporting', date: '2026-11-26',
+    topic: 'Linked lists', pattern: 'Compare with next + unlink', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
     why: 'Combines two reported items: "remove duplicates from a list" (historical) and "remove a node from a linked list" (ColorStack). Sorted order makes duplicates adjacent.',
     time: 'O(n)', space: 'O(1)',
     prereqs: ['linked-lists/remove', 'linked-lists/nodes'],
@@ -411,10 +428,11 @@ export const problems: Problem[] = [
     hints: ['Where must duplicates be in a sorted list?', 'Compare each node with the node after it.', 'If they match, skip the next node — and do NOT advance yet. Why not?'],
     origin: 'colorstack', evidence: ['github-historical'],
     candidateReport: 'Historical report: "Remove duplicates from a list."',
+    demoted: "Bootcamp: optional stretch on Day 3. It is the same unlink step as LC 203 (the reported question) on a sorted list; do it only after the core linked-list problems.",
   },
   {
     id: 268, title: 'Missing Number', slug: 'missing-number', difficulty: 'Easy',
-    topic: 'Arrays & math', pattern: 'Expected sum (or set / XOR)', priority: 'P0', wave: 'Supporting', date: '2026-11-27',
+    topic: 'Arrays & math', pattern: 'Expected sum (or set / XOR)', priority: 'P0', wave: 'Supporting', date: '2026-11-29',
     why: '"Find a missing number in a sequence" is in the historical reports. It has four correct approaches with different costs — ideal for brute force → optimize and trade-off talk.',
     time: 'O(n)', space: 'O(1) with the sum formula or XOR; O(n) with a set',
     prereqs: ['solving/testing-hints', 'arrays/traversal', 'hashing/frequency-maps'],
@@ -425,7 +443,7 @@ export const problems: Problem[] = [
   },
   {
     id: 26, title: 'Remove Duplicates from Sorted Array', slug: 'remove-duplicates-from-sorted-array', difficulty: 'Easy',
-    topic: 'Arrays & strings', pattern: 'Same-direction two pointers (read/write)', priority: 'P0', wave: 'Supporting', date: '2026-11-27',
+    topic: 'Arrays & strings', pattern: 'Same-direction two pointers (read/write)', priority: 'P0', wave: 'Supporting', date: '2026-11-26',
     why: 'ColorStack-recommended and matches the historical "remove duplicates" report. The read/write pointer is the core in-place array technique.',
     time: 'O(n)', space: 'O(1)',
     prereqs: ['two-pointers/same-direction', 'solving/testing-hints'],
@@ -446,17 +464,18 @@ export const problems: Problem[] = [
   },
   {
     id: 415, title: 'Add Strings', slug: 'add-strings', difficulty: 'Easy',
-    topic: 'Arrays & strings', pattern: 'Digit-by-digit simulation with carry', priority: 'P0', wave: 'Supporting', date: '2026-11-29',
+    topic: 'Arrays & strings', pattern: 'Digit-by-digit simulation with carry', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'ColorStack-recommended. Simulating grade-school addition from the right is the template for Add Two Numbers and any "digits as strings" question.',
     time: 'O(max(n, m))', space: 'O(max(n, m)) for the output',
     prereqs: ['solving/math-simulation', 'arrays/strings'],
     terms: ['edge-case', 'immutable', 'pointer'],
     hints: ['You may not convert the whole string to int. How did you add on paper?', 'Start at the last digit of both strings and carry what overflows.', 'Keep going while either string has digits OR a carry remains; build the answer in a list.'],
     origin: 'colorstack', evidence: ['colorstack-recommended'],
+    demoted: "Bootcamp: optional on Day 5. Digit simulation with a carry is not a requested core topic; do it only if the core problems are done.",
   },
   {
     id: 1344, title: 'Angle Between Hands of a Clock', slug: 'angle-between-hands-of-a-clock', difficulty: 'Medium',
-    topic: 'Math', pattern: 'Model the rule, then compute', priority: 'P0', wave: 'Supporting', date: '2026-11-29',
+    topic: 'Math', pattern: 'Model the rule, then compute', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: '"Calculate the acute angle between two hands on a clock" is in the historical reports. It tests modeling a real-world rule, not an algorithm — say your formula out loud before coding.',
     time: 'O(1)', space: 'O(1)',
     prereqs: ['solving/math-simulation'],
@@ -464,11 +483,12 @@ export const problems: Problem[] = [
     hints: ['How many degrees does the minute hand move per minute?', 'The hour hand moves too: how far does it go per minute?', 'Take the absolute difference, then choose the smaller of it and 360 minus it.'],
     origin: 'colorstack', evidence: ['github-historical'],
     candidateReport: 'Historical report: "Calculate the acute angle between two hands on a clock." LeetCode 1344 asks for the smaller angle, which is the same idea.',
+    demoted: "Bootcamp: optional stretch on Day 5. It is a historical report, but clock and digit simulation is not one of the requested core topics.",
   },
   // ---------------- Optional stretch (ColorStack-recommended; not required) ----------------
   {
     id: 283, title: 'Move Zeroes', slug: 'move-zeroes', difficulty: 'Easy',
-    topic: 'Arrays & strings', pattern: 'Same-direction two pointers (read/write)', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
+    topic: 'Arrays & strings', pattern: 'Same-direction two pointers (read/write)', priority: 'P0', wave: 'Supporting', date: '2026-11-26',
     why: 'Optional ColorStack recommendation — the same read/write pointer as LC 26. Good for a second rep.',
     time: 'O(n)', space: 'O(1)',
     prereqs: ['two-pointers/same-direction', 'solving/testing-hints'],
@@ -478,7 +498,7 @@ export const problems: Problem[] = [
   },
   {
     id: 27, title: 'Remove Element', slug: 'remove-element', difficulty: 'Easy',
-    topic: 'Arrays & strings', pattern: 'Same-direction two pointers (read/write)', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
+    topic: 'Arrays & strings', pattern: 'Same-direction two pointers (read/write)', priority: 'P1', wave: 'Stretch', date: '2026-11-26',
     why: 'Optional ColorStack recommendation — read/write pointer where order does not matter.',
     time: 'O(n)', space: 'O(1)',
     prereqs: ['two-pointers/same-direction', 'solving/testing-hints'],
@@ -508,7 +528,7 @@ export const problems: Problem[] = [
   },
   {
     id: 160, title: 'Intersection of Two Linked Lists', slug: 'intersection-of-two-linked-lists', difficulty: 'Easy',
-    topic: 'Linked lists', pattern: 'Hash set of nodes (or switch-heads pointers)', priority: 'P1', wave: 'Stretch', date: '2026-11-26',
+    topic: 'Linked lists', pattern: 'Hash set of nodes (or switch-heads pointers)', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
     why: 'Optional ColorStack recommendation. Tests whether you compare NODES (references) rather than values.',
     time: 'O(n + m)', space: 'O(n) with a set; O(1) with two pointers',
     prereqs: ['linked-lists/nodes', 'hashing/frequency-maps', 'linked-lists/remove'],
@@ -518,7 +538,7 @@ export const problems: Problem[] = [
   },
   {
     id: 237, title: 'Delete Node in a Linked List', slug: 'delete-node-in-a-linked-list', difficulty: 'Medium',
-    topic: 'Linked lists', pattern: 'Copy next value, skip next', priority: 'P1', wave: 'Stretch', date: '2026-11-26',
+    topic: 'Linked lists', pattern: 'Copy next value, skip next', priority: 'P0', wave: 'Supporting', date: '2026-11-27',
     why: 'Optional: another variant of the reported "remove a node" question — you are given only the node, not the head.',
     time: 'O(1)', space: 'O(1)',
     prereqs: ['linked-lists/remove'],
@@ -528,7 +548,7 @@ export const problems: Problem[] = [
   },
   {
     id: 19, title: 'Remove Nth Node From End of List', slug: 'remove-nth-node-from-end-of-list', difficulty: 'Medium',
-    topic: 'Linked lists', pattern: 'Gap of n between two pointers', priority: 'P1', wave: 'Stretch', date: '2026-11-26',
+    topic: 'Linked lists', pattern: 'Gap of n between two pointers', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
     why: 'Optional: a third "remove a node" variant. Two passes (count, then remove) is a fine first answer.',
     time: 'O(n)', space: 'O(1)',
     prereqs: ['linked-lists/remove', 'two-pointers/fast-slow'],
@@ -538,7 +558,7 @@ export const problems: Problem[] = [
   },
   {
     id: 138, title: 'Copy List with Random Pointer', slug: 'copy-list-with-random-pointer', difficulty: 'Medium',
-    topic: 'Linked lists', pattern: 'Old-node → new-node hash map (deep copy)', priority: 'P1', wave: 'Stretch', date: '2026-11-28',
+    topic: 'Linked lists', pattern: 'Old-node → new-node hash map (deep copy)', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
     why: 'Optional ColorStack recommendation. A deep copy of linked objects — the same idea as cloning in the Canva OOP question.',
     time: 'O(n)', space: 'O(n) for the map',
     prereqs: ['oop/copying', 'linked-lists/nodes', 'hashing/frequency-maps'],
@@ -548,7 +568,7 @@ export const problems: Problem[] = [
   },
   {
     id: 42, title: 'Trapping Rain Water', slug: 'trapping-rain-water', difficulty: 'Hard',
-    topic: 'Arrays & strings', pattern: 'Two pointers with running maxima', priority: 'P1', wave: 'Stretch', date: '2026-11-26',
+    topic: 'Arrays & strings', pattern: 'Two pointers with running maxima', priority: 'P1', wave: 'Stretch', date: '2026-11-27',
     why: 'Optional stretch, as the ColorStack list itself says. Skip unless everything else is solid.',
     time: 'O(n)', space: 'O(1) with two pointers (O(n) with prefix/suffix max arrays)',
     prereqs: ['two-pointers/opposite', 'stacks-queues/monotonic'],
@@ -558,7 +578,7 @@ export const problems: Problem[] = [
   },
   {
     id: 23, title: 'Merge k Sorted Lists', slug: 'merge-k-sorted-lists', difficulty: 'Hard',
-    topic: 'Heaps', pattern: 'Min-heap of list heads', priority: 'P1', wave: 'Stretch', date: '2026-11-30',
+    topic: 'Heaps', pattern: 'Min-heap of list heads', priority: 'P1', wave: 'Stretch', date: '2026-11-29',
     why: 'Optional stretch, as the ColorStack list itself says. Extends Merge Two Sorted Lists (LC 21, reported).',
     time: 'O(N log k) for N total nodes', space: 'O(k) for the heap',
     prereqs: ['patterns/heaps', 'linked-lists/dummy-merge'],

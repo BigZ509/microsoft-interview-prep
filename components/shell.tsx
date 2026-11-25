@@ -4,48 +4,45 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  BookOpen, BookText, Boxes, EyeOff, FileCode, Gauge, LayoutDashboard, Library, ListChecks, Menu, MessagesSquare, Puzzle, RotateCcw, Search, X,
+  BookOpen, BookText, Boxes, EyeOff, FileCode, Gauge, GraduationCap, Library, ListChecks, Menu, MessagesSquare, Puzzle, RotateCcw, Search, X,
 } from 'lucide-react';
 import { useHydrated, useProgress, useStorageError, useToday } from '@/lib/store';
 import { countdown } from '@/lib/dates';
-import { trackStatus } from '@/lib/progress';
 import { reviewQueuesFor } from '@/lib/insights';
-import { INTERVIEW_DATE, PLAN_START } from '@/content/schedule';
-import { problems } from '@/content/problems';
+import { currentDay, dayPlan } from '@/lib/bootcamp';
+import { INTERVIEW_DATE } from '@/content/schedule';
+import { bootcampDays } from '@/content/bootcamp';
 import { ProgressBar } from './ui';
 
 type NavItem = { href: string; label: string; Icon: typeof BookOpen; match: (p: string) => boolean; badge?: 'review' };
 
-const groups: { label: string; items: NavItem[] }[] = [
+/**
+ * Primary navigation is the guided bootcamp and review. Every standalone page lives under the secondary
+ * Reference Library: still available, never required by a scheduled activity.
+ */
+const groups: { label: string; items: NavItem[]; secondary?: boolean }[] = [
   {
-    label: 'Today',
+    label: 'Study',
     items: [
-      { href: '/', label: 'Dashboard', Icon: LayoutDashboard, match: (p) => p === '/' },
+      { href: '/', label: 'Bootcamp', Icon: GraduationCap, match: (p) => p === '/' || p.startsWith('/study') },
       { href: '/review', label: 'Review', Icon: RotateCcw, match: (p) => p.startsWith('/review'), badge: 'review' },
     ],
   },
   {
-    label: 'Study',
+    label: 'Reference Library',
+    secondary: true,
     items: [
-      { href: '/learn', label: 'Learn', Icon: BookOpen, match: (p) => p.startsWith('/learn') },
+      { href: '/learn', label: 'Lessons', Icon: BookOpen, match: (p) => p.startsWith('/learn') },
       { href: '/dictionary', label: 'Interview Dictionary', Icon: BookText, match: (p) => p.startsWith('/dictionary') },
       { href: '/patterns', label: 'Pattern Recognition', Icon: Puzzle, match: (p) => p.startsWith('/patterns') },
       { href: '/big-o', label: 'Big-O Lab', Icon: Gauge, match: (p) => p.startsWith('/big-o') },
       { href: '/code-reading', label: 'Code Reading', Icon: FileCode, match: (p) => p.startsWith('/code-reading') },
-    ],
-  },
-  {
-    label: 'Practice',
-    items: [
       { href: '/blind', label: 'Blind Assessments', Icon: EyeOff, match: (p) => p.startsWith('/blind') },
       { href: '/tracker', label: 'LeetCode Tracker', Icon: ListChecks, match: (p) => p.startsWith('/tracker') },
       { href: '/oop', label: 'OOP Challenges', Icon: Boxes, match: (p) => p.startsWith('/oop') },
       { href: '/mock', label: 'Mock Interviews', Icon: MessagesSquare, match: (p) => p.startsWith('/mock') },
+      { href: '/sources', label: 'Sources', Icon: Library, match: (p) => p.startsWith('/sources') },
     ],
-  },
-  {
-    label: 'Reference',
-    items: [{ href: '/sources', label: 'Sources', Icon: Library, match: (p) => p.startsWith('/sources') }],
   },
 ];
 
@@ -64,13 +61,14 @@ function SidebarProgress() {
   const hydrated = useHydrated();
   if (!today || !hydrated) return null;
   const c = countdown(today, INTERVIEW_DATE);
-  const t = trackStatus(progress, problems, today, PLAN_START);
+  const { day } = currentDay(today);
+  const plan = dayPlan(day, progress, today);
   return (
-    <div className="sidebar-foot" aria-label="Plan progress">
+    <div className="sidebar-foot" aria-label="Bootcamp progress">
       <div className="muted tiny" style={{ fontWeight: 600 }}>Microsoft Explore · Dec 2</div>
       <div className="count">{c.kind === 'before' ? `${c.days} day${c.days === 1 ? '' : 's'} left` : c.kind === 'today' ? 'Interview day' : 'Interview done'}</div>
-      <ProgressBar value={t.totalCompleted} max={t.totalPlanned} tone="good" label="Planned problems completed" />
-      <div className="tiny muted">{t.totalCompleted}/{t.totalPlanned} planned problems · {t.behind > 0 ? `${t.behind} behind` : 'on schedule'}</div>
+      <ProgressBar value={plan.percent} max={100} tone="good" label={`Day ${day} progress`} />
+      <div className="tiny muted">Day {day} of {bootcampDays.length} · {plan.percent}% done today</div>
     </div>
   );
 }
@@ -105,7 +103,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </Link>
         <nav aria-label="Main">
           {groups.map((g) => (
-            <div key={g.label} className="nav-group">
+            <div key={g.label} className={`nav-group${g.secondary ? ' secondary' : ''}`}>
               <div className="nav-group-label">{g.label}</div>
               {g.items.map(({ href, label, Icon, match, badge }) => (
                 <Link key={href} href={href} className="nav-link" aria-current={match(pathname) ? 'page' : undefined}>

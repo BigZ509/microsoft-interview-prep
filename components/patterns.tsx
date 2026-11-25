@@ -342,3 +342,20 @@ export function Decoder() {
     </>
   );
 }
+
+// ------------------------- Embeddable sets (bootcamp player) -------------------------
+
+/** A fixed list of scenarios, all open, in the given order. */
+export function ScenarioSet({ ids }: { ids: string[] }) {
+  const [closed, setClosed] = useState<Set<string>>(() => new Set());
+  const list = ids.map((id) => scenarios.find((s) => s.id === id)).filter((s): s is PatternScenario => Boolean(s));
+  const toggle = (id: string) => setClosed((c) => { const n = new Set(c); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  return <div>{list.map((s, i) => <ScenarioCard key={s.id} s={s} index={i} open={!closed.has(s.id)} onToggle={() => toggle(s.id)} />)}</div>;
+}
+
+/** One decoder problem, open. */
+export function DecoderSingle({ id }: { id: string }) {
+  const [open, setOpen] = useState(true);
+  const d = decoderProblems.find((x) => x.id === id)!;
+  return <DecoderCard d={d} index={0} open={open} onToggle={() => setOpen((o) => !o)} />;
+}

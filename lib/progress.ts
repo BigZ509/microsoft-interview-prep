@@ -65,6 +65,21 @@ export type PracticeAttempt = { date: string; outcome: PracticeOutcome; hints: n
  */
 export type PracticeRecord = { draft: Record<string, string>; hints: number; revealed: boolean; attempts: PracticeAttempt[] };
 
+/** Bootcamp activity marks. Only explicit learner actions are stored; "pending" and "deferred" are derived. */
+export const BOOTCAMP_MARKS = ['done', 'skipped'] as const;
+export type BootcampMark = { status: (typeof BOOTCAMP_MARKS)[number]; at: string };
+export type BootcampState = {
+  /** The activity the learner last opened (resume position). */
+  position: string | null;
+  activities: Record<string, BootcampMark>;
+  /** Study hours available per full day; null = the default (8). */
+  hours: number | null;
+};
+
+export function emptyBootcamp(): BootcampState {
+  return { position: null, activities: {}, hours: null };
+}
+
 export type Story = {
   id: string;
   promptId: string;
@@ -86,10 +101,11 @@ export type Progress = {
   stories: Story[];
   projects: Record<string, Record<string, string>>;
   practice: Record<string, PracticeRecord>;
+  bootcamp: BootcampState;
 };
 
 export function emptyProgress(): Progress {
-  return { version: 1, problems: {}, lessons: {}, checks: {}, drills: {}, patterns: {}, decoder: {}, terms: {}, mocks: [], stories: [], projects: {}, practice: {} };
+  return { version: 1, problems: {}, lessons: {}, checks: {}, drills: {}, patterns: {}, decoder: {}, terms: {}, mocks: [], stories: [], projects: {}, practice: {}, bootcamp: emptyBootcamp() };
 }
 
 export function emptyProblemRecord(): ProblemRecord {
@@ -184,6 +200,20 @@ export function normalizeProgress(raw: unknown): Progress {
         hints: Math.max(0, Math.floor(num(v.hints))), revealed: bool(v.revealed), attempts,
       };
     }),
+    // Added with the seven-day bootcamp. Older saves have no `bootcamp` key and load with an empty state.
+    bootcamp: normalizeBootcamp(raw.bootcamp),
+  };
+}
+
+function normalizeBootcamp(value: unknown): BootcampState {
+  if (!isRecord(value)) return emptyBootcamp();
+  const hours = typeof value.hours === 'number' && Number.isFinite(value.hours) && value.hours >= 1 && value.hours <= 16 ? Math.round(value.hours * 2) / 2 : null;
+  const position = typeof value.position === 'string' && value.position.length <= 200 && !UNSAFE_KEYS.has(value.position) ? value.position : null;
+  return {
+    position,
+    hours,
+    activities: mapEntries(value.activities, (v) => (isRecord(v) && typeof v.status === 'string' && (BOOTCAMP_MARKS as readonly string[]).includes(v.status) && isDateKey(v.at)
+      ? { status: v.status as BootcampMark['status'], at: v.at } : null)),
   };
 }
 
@@ -251,6 +281,31 @@ export function independentDays(record: ProblemRecord): number {
  */
 export function isMastered(record: ProblemRecord): boolean {
   return record.status === 'independent' && !record.retry && independentDays(record) >= 2;
+}
+
+/** The five learning levels the platform distinguishes (bootcamp request §8). */
+export const RETENTION_LEVELS = ['read', 'attempted', 'with-help', 'independent', 'retained'] as const;
+export type RetentionLevel = (typeof RETENTION_LEVELS)[number];
+export const RETENTION_LABELS: Record<RetentionLevel, string> = {
+  read: 'Read the lessons',
+  attempted: 'Attempted',
+  'with-help': 'Solved with help',
+  independent: 'Solved independently',
+  retained: 'Retained',
+};
+
+/**
+ * Which levels a problem has reached. `read` = every prerequisite lesson completed. Viewing hints or the
+ * reference complexity records nothing, so it can never move a problem up this ladder.
+ */
+export function retentionReached(record: ProblemRecord, prereqsRead: boolean): Record<RetentionLevel, boolean> {
+  return {
+    read: prereqsRead,
+    attempted: record.history.length > 0,
+    'with-help': record.history.some((e) => isCompleted(e.status)),
+    independent: record.history.some((e) => e.status === 'independent'),
+    retained: isMastered(record),
+  };
 }
 
 /**

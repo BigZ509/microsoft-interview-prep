@@ -87,12 +87,12 @@ export function ReviewPage() {
       <PageHeader
         eyebrow="Review"
         title="What needs review?"
-        description={<>Light spaced repetition: problems solved with help or only attempted come back after 1 day; a first independent solve comes back after 3 days. A problem counts as <strong>mastered</strong> only after you solve it independently on two different days — one completion is not mastery.</>}
+        description={<>Light spaced repetition: problems solved with help or only attempted come back after 1 day; a first independent solve comes back after 3 days. A problem counts as <strong>retained</strong> only after you solve it independently on two different days — one completion is not retention.</>}
       />
       <div className="stats" style={{ marginBottom: 'var(--s5)' }}>
         <Stat label="Due now" value={dueTotal} tone={dueTotal ? undefined : 'good'} hint={`${queues.problems.length} problems · ${queues.practice.length} practice · ${queues.concepts.length} concepts`} />
-        <Stat label="Solved with help" value={withHelp.length} tone="accent" hint="Not counted toward mastery" />
-        <Stat label="Solved independently" value={independent.length} tone="good" hint={`${problems.filter((p) => isMastered(problemRecord(progress, p.id))).length} mastered`} />
+        <Stat label="Solved with help" value={withHelp.length} tone="accent" hint="Not counted toward retention" />
+        <Stat label="Solved independently" value={independent.length} tone="good" hint={`${problems.filter((p) => isMastered(problemRecord(progress, p.id))).length} retained`} />
         <Stat label="Recovered" value={recovered.length} hint="Missed before, correct now" />
       </div>
       <div className="grid-2" style={{ alignItems: 'start' }}>
@@ -141,7 +141,7 @@ export function ReviewPage() {
       <Panel className="section" title={`Solved independently (${independent.length})`} flush>
         {independent.length === 0 ? <p className="empty">None yet.</p> : <ul className="item-list">{independent.map((p) => <ProblemItem key={p.id} problem={p} progress={progress} />)}</ul>}
       </Panel>
-      <Panel className="section" title={`Not yet mastered (${upcoming.length})`} flush>
+      <Panel className="section" title={`Not yet retained (${upcoming.length})`} flush>
         {upcoming.length === 0 ? <p className="empty">Nothing in progress.</p> : <ul className="item-list">{upcoming.map(({ p }) => <ProblemItem key={p.id} problem={p} progress={progress} />)}</ul>}
       </Panel>
     </>

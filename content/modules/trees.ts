@@ -322,7 +322,7 @@ assert min_depth(build([3, 9, 20, None, None, 15, 7])) == 2
         { q: "Why does BFS find minimum depth faster than DFS on many trees?", options: ['It uses less memory', 'It visits shallow levels first and can stop at the first leaf', 'It is O(log n)', 'It sorts nodes'], answer: 1, explain: "DFS might explore a very deep branch before finding a shallow leaf elsewhere." },
         { q: "BFS queue memory is bounded by…", options: ['Tree height', 'Maximum level width', 'log n always', 'O(1)'], answer: 1, explain: "The queue holds (at most about two) levels at once." },
       ],
-      problems: [104, 733, 994],
+      problems: [102, 104, 733, 994],
       terms: ['bfs', 'queue', 'depth', 'traversal'],
       verbal: "\"I'll do BFS with a deque, processing len(q) nodes per level. Each node is enqueued once: O(n) time and O(w) space for the widest level.\"",
     },

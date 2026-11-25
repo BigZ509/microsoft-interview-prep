@@ -205,7 +205,7 @@ assert merge(x, chain([2])) is x                     # reused, not copied
     statement: 'A train is a chain of car objects; each car has a cargo label and a reference to the next car. Detach every car whose cargo label equals a given label (the engine at the front may be one of them) and return the new front car, or None if no cars remain.',
     examples: ['coal → ore → coal → wood, remove "coal" → ore → wood', 'coal → coal, remove "coal" → None'],
     constraints: ['0 ≤ cars ≤ 10,000', 'O(1) extra memory'],
-    unlock: '2026-11-26', evidence: 'colorstack-reported', evidenceNote: 'ColorStack-reported: "remove a node from a linked list" (variant unspecified) — here, remove by value (LC 203)',
+    unlock: '2026-11-27', evidence: 'colorstack-reported', evidenceNote: 'ColorStack-reported: "remove a node from a linked list" (variant unspecified) — here, remove by value (LC 203)',
     answer: {
       pattern: 'Dummy node + unlink (prev.next = prev.next.next)', difficulty: 'Easy',
       signals: ['Chain of objects with next references → linked list', 'The front may be removed → the head can change', 'Consecutive matches are possible', 'O(1) memory → rewire, do not rebuild'],
@@ -364,7 +364,7 @@ assert not qualifies("0P")
     statement: 'A radio station logs the ID of the song played each hour as a string of characters (one character per song). Find the length of the longest run of consecutive hours in which no song was played twice.',
     examples: ['"abcabcbb" → 3', '"bbbbb" → 1', '"pwwkew" → 3', '"" → 0'],
     constraints: ['0 ≤ length ≤ 50,000'],
-    unlock: '2026-11-25',
+    unlock: '2026-11-26',
     answer: {
       pattern: 'Variable sliding window with last-seen positions', difficulty: 'Medium',
       signals: ['"consecutive hours" → contiguous', '"longest" → maximise a window', 'Once a repeat is inside, the run stays invalid until its left end moves past the earlier copy → shrinking from the left is safe'],
@@ -396,7 +396,7 @@ for s, want in (("abcabcbb", 3), ("bbbbb", 1), ("pwwkew", 3), ("", 0), ("abba", 
     statement: 'A configuration format uses three kinds of brackets: (), [] and {}. A file is well formed if every opening bracket is closed by the same kind, and brackets close in the correct order. Given the bracket characters of a file, return whether it is well formed.',
     examples: ['"{[()]}" → True', '"([)]" → False', '"((" → False', '"" → True'],
     constraints: ['0 ≤ length ≤ 10,000', 'Only bracket characters'],
-    unlock: '2026-11-26', evidence: 'colorstack-recommended', evidenceNote: 'ColorStack-recommended: Valid Parentheses (LC 20), reworded',
+    unlock: '2026-11-27', evidence: 'colorstack-recommended', evidenceNote: 'ColorStack-recommended: Valid Parentheses (LC 20), reworded',
     answer: {
       pattern: 'Stack of open brackets', difficulty: 'Easy',
       signals: ['Matching open/close pairs', 'The most recently opened bracket must close first → last in, first out', 'Counting alone fails on "([)]"'],
@@ -566,7 +566,7 @@ assert preorder(mirror(Node(1))) == [1]
     statement: 'A courier must visit each of k different stores exactly once, in any order. Return every possible visiting order.',
     examples: ['["A", "B", "C"] → 6 orders: ABC, ACB, BAC, BCA, CAB, CBA', '["A"] → [["A"]]'],
     constraints: ['1 ≤ k ≤ 7', 'Store names are distinct'],
-    unlock: '2026-11-28',
+    unlock: '2026-11-29',
     answer: {
       pattern: 'Backtracking over unused choices (permutations)', difficulty: 'Medium',
       signals: ['"every possible order" → output all arrangements', 'k ≤ 7 → exponential/factorial output is expected (7! = 5040)', 'Build an order one choice at a time and undo it'],
@@ -608,7 +608,7 @@ assert all_routes(["A"]) == [["A"]]
     statement: 'A meeting room has a list of bookings, each a [start, end] pair, in no particular order. Bookings that overlap or touch should be shown as one combined block. Return the combined blocks sorted by start.',
     examples: ['[[1, 3], [8, 10], [2, 6], [15, 18]] → [[1, 6], [8, 10], [15, 18]]', '[[1, 4], [4, 5]] → [[1, 5]]'],
     constraints: ['1 ≤ bookings ≤ 10,000', 'start ≤ end'],
-    unlock: '2026-11-27',
+    unlock: '2026-11-29',
     answer: {
       pattern: 'Sort by start, then merge in one scan', difficulty: 'Medium',
       signals: ['Ranges that may overlap → intervals', '"no particular order" → sort first so overlaps become neighbours', 'Output sorted by start'],
@@ -770,6 +770,132 @@ for ch, k in (([1, 1, 1], 2), ([1, 2, 3], 3), ([3, -3, 3], 3), ([0, 0], 0), ([-1
     },
     hints: ['Would a sliding window work if some changes are negative? Try [3, −3, 3] with k = 3.', 'How do you get the sum of days i+1..j from running totals?', 'For the current running total, which earlier running totals would complete a run of exactly k?'],
     followUp: 'If every change were positive, what simpler approach would work, and why?',
+  },
+  // ---------------------------------------------------- added for the seven-day bootcamp (unseen items)
+  {
+    id: 'draft-keystrokes', codename: 'Draft keystrokes',
+    statement: 'Two people each typed a message on a keyboard. Their raw keystroke logs are given as strings, where the character "#" means they pressed the backspace key (backspace on an empty message does nothing). Return true if both people ended up with exactly the same final text.',
+    examples: ['"ab#c", "ad#c" → true (both become "ac")', '"ab##", "c#d#" → true (both become "")', '"a#c", "b" → false'],
+    constraints: ['1 ≤ length of each log ≤ 200', 'Lowercase letters and "#"', 'Follow-up: O(1) extra space'],
+    unlock: '2026-11-27', evidenceNote: 'Original variation (similar to LC 844) — added so Day 3 has an unseen item',
+    answer: {
+      pattern: 'Build each result with a stack of characters', difficulty: 'Easy',
+      signals: ['"#" removes the most recently typed character still present → last in, first out', 'Only the final text matters, so you can rebuild it once per log', 'Backspace on empty does nothing → guard the removal'],
+      structure: 'Stack',
+      brute: { idea: 'Simulate with string slicing: on "#", text = text[:-1]; on a letter, text = text + ch.', time: 'O(n²) — each slice or concatenation copies the string', space: 'O(n)' },
+      bottleneck: 'Creating a new string on every keystroke copies everything typed so far.',
+      optimized: { idea: 'Use a list as a stack: append letters, pop on "#" when non-empty; compare the two lists. (O(1)-space follow-up: walk both strings from the end, skipping characters cancelled by "#".)', time: 'O(n + m)', space: 'O(n + m)' },
+      edgeCases: ['More backspaces than letters ("a##") → empty text', 'Both logs become empty → true', 'Backspace as the first keystroke'],
+      solution: py`
+def final_text(log):
+    out = []
+    for ch in log:
+        if ch == "#":
+            if out:
+                out.pop()
+        else:
+            out.append(ch)
+    return out
+
+def same_text(a, b):
+    return final_text(a) == final_text(b)
+
+assert same_text("ab#c", "ad#c")
+assert same_text("ab##", "c#d#")
+assert not same_text("a#c", "b")
+assert same_text("#a", "a") and same_text("a##", "")
+assert final_text("abc#d") == ["a", "b", "d"]
+`,
+      lessons: ['stacks-queues/stacks', 'solving/brute-to-optimal'],
+    },
+    hints: ['When "#" appears, which character disappears?', 'What structure lets you remove the most recently added item in O(1)?', 'Rebuild each final text once, then compare.'],
+    followUp: 'Can you compare the two logs using O(1) extra space? (Hint: read them from the end.)',
+  },
+  {
+    id: 'middle-carriage', codename: 'Middle carriage',
+    statement: 'A train is given by its first carriage. Each carriage object has a `number` and a `next` attribute that refers to the carriage behind it (None for the last one). You cannot see the length in advance. Return the middle carriage; if there are two middle carriages, return the second one. Try to walk the train only once.',
+    examples: ['1 → 2 → 3 → 4 → 5 → returns carriage 3', '1 → 2 → 3 → 4 → 5 → 6 → returns carriage 4', '7 → returns carriage 7'],
+    constraints: ['1 ≤ number of carriages ≤ 100', 'One pass preferred, O(1) extra space'],
+    unlock: '2026-11-24', evidenceNote: 'Original variation (similar to LC 876) — added so Day 3 has an unseen item',
+    answer: {
+      pattern: 'Fast and slow pointers (fast moves two steps, slow one)', difficulty: 'Easy',
+      signals: ['Each carriage only knows the next one → you move by references, not indices', 'Length unknown and one pass wanted → you cannot count first and then walk to n // 2', '"middle" = half of the distance → something moving at half speed'],
+      structure: 'Two pointers',
+      brute: { idea: 'Walk once to count n, then walk again n // 2 steps. Or copy every carriage into a list and index the middle.', time: 'O(n)', space: 'O(1) for two passes, O(n) for the list copy' },
+      bottleneck: 'The length is only known at the end, which forces a second pass (or extra memory).',
+      optimized: { idea: 'Move slow one step and fast two steps until fast reaches the end; slow is then at the middle (the second middle for even lengths).', time: 'O(n)', space: 'O(1)' },
+      edgeCases: ['One carriage → that carriage', 'Two carriages → the second', 'Even vs odd length: check the loop condition `fast and fast.next`'],
+      solution: py`
+class Carriage:
+    def __init__(self, number, next=None):
+        self.number = number
+        self.next = next
+
+def build(numbers):
+    head = None
+    for n in reversed(numbers):
+        head = Carriage(n, head)
+    return head
+
+def middle(first):
+    slow = fast = first
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+    return slow
+
+assert middle(build([1, 2, 3, 4, 5])).number == 3
+assert middle(build([1, 2, 3, 4, 5, 6])).number == 4
+assert middle(build([7])).number == 7
+assert middle(build([1, 2])).number == 2
+`,
+      lessons: ['two-pointers/fast-slow', 'linked-lists/nodes'],
+    },
+    hints: ['If you were allowed two passes, what would the first pass compute?', 'Imagine two people walking the train at different speeds. Where is the slower one when the faster reaches the end?', 'Check your loop condition on a train of length 2.'],
+    followUp: 'How would you delete the middle carriage instead of returning it?',
+  },
+  {
+    id: 'trail-total', codename: 'Trail total',
+    statement: 'A hiking map starts at one junction. Each junction has a distance value and at most two onward trails, `left` and `right` (None when a trail does not exist). A junction with no onward trails is an endpoint. Given the starting junction and a target, return true if some route from the start down to an endpoint has distance values that add up exactly to the target.',
+    examples: ['start 5 → left 4 → left 11 → left 2 (endpoint): 5 + 4 + 11 + 2 = 22, target 22 → true', 'start 1, left 2, right 3, target 5 → false (routes sum to 3 and 4)', 'empty map (start is None), target 0 → false'],
+    constraints: ['0 ≤ number of junctions ≤ 5,000', 'Values and target can be negative', 'The route must end at an endpoint, not partway'],
+    unlock: '2026-11-28', evidenceNote: 'Original variation (similar to LC 112) — added so Day 4 has an unseen item',
+    answer: {
+      pattern: 'Depth-first search carrying the remaining target', difficulty: 'Easy',
+      signals: ['Each junction has at most two onward trails → a binary tree given by references', '"from the start down to an endpoint" → root-to-leaf paths', 'The answer for a junction depends on the answers for its two sub-maps with a smaller target → solve the same question on smaller pieces'],
+      structure: 'Recursion / tree DFS',
+      brute: { idea: 'Collect every root-to-leaf route as a list, sum each one, and compare with the target.', time: 'O(n · h) — copying each route', space: 'O(n · h) for the stored routes' },
+      bottleneck: 'Storing and re-summing whole routes repeats work every route shares with its prefix.',
+      optimized: { idea: 'Recurse with remaining = target − node value. At an endpoint, check remaining == 0. Return left_result or right_result (stop early once true).', time: 'O(n)', space: 'O(h) call stack' },
+      edgeCases: ['Empty map → false (even for target 0)', 'A single junction equal to the target → true', 'Negative values: you cannot stop early just because the running sum passed the target', 'A junction with only one onward trail is not an endpoint'],
+      solution: py`
+class Junction:
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
+
+def has_route(node, target):
+    if node is None:
+        return False
+    remaining = target - node.value
+    if node.left is None and node.right is None:   # endpoint
+        return remaining == 0
+    return has_route(node.left, remaining) or has_route(node.right, remaining)
+
+m = Junction(5, Junction(4, Junction(11, Junction(7), Junction(2))), Junction(8, Junction(13), Junction(4, None, Junction(1))))
+assert has_route(m, 22)
+assert not has_route(m, 26 + 100)
+assert has_route(m, 26)            # 5 + 8 + 13
+assert not has_route(Junction(1, Junction(2), Junction(3)), 5)
+assert not has_route(None, 0)
+assert has_route(Junction(-2, None, Junction(-3)), -5)
+assert not has_route(Junction(1, Junction(2)), 1)   # 1 alone is not an endpoint
+`,
+      lessons: ['trees/dfs', 'recursion/call-stack', 'recursion/basics'],
+    },
+    hints: ['What is the answer for a junction with no onward trails?', 'If the start has value v, what target must one of its two sub-maps reach?', 'Write the function for one junction and trust the calls on its children.'],
+    followUp: 'Return every route (as a list of values) that reaches the target, not just true or false.',
   },
 ];
 

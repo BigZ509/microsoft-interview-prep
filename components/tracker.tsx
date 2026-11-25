@@ -13,7 +13,7 @@ import {
   updateProblemFields, type ProblemStatus,
 } from '@/lib/progress';
 import { exportProgress, replaceProgress, update, useProgress, useToday } from '@/lib/store';
-import { LeetCodeLink, ProblemItem, StatusBadge, StatusPicker } from './problem-ui';
+import { LeetCodeLink, ProblemItem, RetentionLadder, StatusBadge, StatusPicker } from './problem-ui';
 import { Inline } from './rich';
 import { DifficultyBadge, PageHeader, Panel, ProgressBar, Stat } from './ui';
 
@@ -47,12 +47,14 @@ export function Tracker() {
       <PageHeader
         eyebrow="LeetCode Tracker"
         title="Your study-plan problems"
-        description="The 35 problems from your original plan plus 20 added on Nov 25 from the ColorStack research (10 core — reported, historical or approachable Easy — and 10 optional). Advanced and secondary-topic problems are marked optional. Solve on LeetCode, then record what happened here. Nothing syncs from LeetCode; every status is one you record."
-      />
+        description="The 35 problems from your original plan, 20 added on Nov 25 from the ColorStack research, and LC 102 requested for the bootcamp. From Nov 25 each problem sits on its bootcamp day; reinforcement, secondary-topic and advanced problems are marked optional. Solve on LeetCode, then record what happened here. Nothing syncs from LeetCode; every status is one you record."
+      >
+        <p className="small muted" style={{ marginBottom: 0 }}>Five levels are tracked separately: <strong>read</strong> the lessons → <strong>attempted</strong> → <strong>solved with help</strong> → <strong>solved independently</strong> → <strong>retained</strong> (independent on two different days). Viewing hints or a reference never counts as solving.</p>
+      </PageHeader>
       {track && (
         <div className="stats" style={{ marginBottom: 'var(--s5)' }}>
           <Stat label="Plan progress" value={`${track.totalCompleted}/${track.totalPlanned}`} hint={<><ProgressBar value={track.totalCompleted} max={track.totalPlanned} tone="good" /><span style={{ display: 'block', marginTop: 6 }}>{track.behind > 0 ? `${track.behind} behind schedule` : track.dueToday ? `On schedule · ${track.dueToday} due today` : 'On schedule'} (first wave + supporting)</span></>} />
-          <Stat label="Solved independently" value={track.independent} tone="good" hint={`${track.mastered} mastered (independent on 2+ days)`} />
+          <Stat label="Solved independently" value={track.independent} tone="good" hint={`${track.mastered} retained (independent on 2+ days)`} />
           <Stat label="Solved with help" value={track.withHelp} tone="accent" hint="Tracked separately — these return to review" />
         </div>
       )}
@@ -61,7 +63,7 @@ export function Tracker() {
           <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as Filter['status'] })}>
             <option value="all">All statuses</option>
             {PROBLEM_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-            <option value="mastered">Mastered</option>
+            <option value="mastered">Retained</option>
           </select>
         </label>
         <label className="field">Topic
@@ -141,7 +143,7 @@ function Backup() {
   );
 }
 
-export function ProblemDetail({ id }: { id: number }) {
+export function ProblemDetail({ id, embedded = false }: { id: number; embedded?: boolean }) {
   const p = getProblem(id)!;
   const progress = useProgress();
   const today = useToday();
@@ -203,13 +205,14 @@ export function ProblemDetail({ id }: { id: number }) {
         <div>
           <div className="exercise-label" style={{ marginTop: 0 }}>After you solve it</div>
           <Panel title="Record your attempt">
+            <RetentionLadder id={p.id} progress={progress} />
             <StatusPicker id={p.id} progress={progress} />
             <div className="row small" style={{ marginTop: 'var(--s3)', gap: '4px 16px', color: 'var(--muted)' }}>
               <span>Last attempted: <strong style={{ color: 'var(--ink)' }}>{rec.lastAttempted ? formatDate(rec.lastAttempted) : '—'}</strong></span>
               <span>Independent solves: <strong style={{ color: 'var(--ink)' }}>{independentDays(rec)} day{independentDays(rec) === 1 ? '' : 's'}</strong></span>
               {due && <span>Review: <strong style={{ color: today && due <= today ? 'var(--warn)' : 'var(--ink)' }}>{today && due <= today ? 'due now' : formatDate(due)}</strong></span>}
             </div>
-            <p className="tiny muted" style={{ margin: '6px 0 0' }}>{isMastered(rec) ? 'Mastered — solved independently on two different days.' : rec.status === 'independent' ? 'Solve it again on another day to confirm mastery.' : 'Mastery = solved independently on two different days.'}</p>
+            <p className="tiny muted" style={{ margin: '6px 0 0' }}>{isMastered(rec) ? 'Retained — solved independently on two different days.' : rec.status === 'independent' ? 'Solve it again on another day to show you retained it.' : 'Retained = solved independently on two different days. Viewing hints never counts as a solve.'}</p>
             <label className="row small" style={{ marginTop: 'var(--s3)', gap: 8 }}>
               <input type="checkbox" checked={rec.retry} onChange={(e) => set({ retry: e.target.checked })} /> Mark for another attempt
             </label>
@@ -226,7 +229,7 @@ export function ProblemDetail({ id }: { id: number }) {
             {showRef && <div className="callout small"><strong>Reference:</strong> time {p.time}; space {p.space}.</div>}
             <label className="field" style={{ marginTop: 'var(--s3)' }}>Notes <textarea value={rec.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Bugs you hit, edge cases, what to remember next time…" /></label>
           </Panel>
-          <Panel title="Schedule" icon={<CalendarClock size={16} aria-hidden="true" />}>
+          {!embedded && <Panel title="Schedule" icon={<CalendarClock size={16} aria-hidden="true" />}>
             <p className="small" style={{ marginTop: 0 }}>Planned for <strong>{formatDate(p.date)}</strong>{plannedDay ? ` (${plannedDay.theme})` : ''}.{rec.reschedule && <> Rescheduled to <strong>{formatDate(rec.reschedule)}</strong>.</>}</p>
             <div className="row" style={{ alignItems: 'end' }}>
               <label className="field">Move to date
@@ -235,7 +238,7 @@ export function ProblemDetail({ id }: { id: number }) {
               {rec.reschedule && <button className="btn small" onClick={() => set({ reschedule: null })}>Restore planned date</button>}
             </div>
             <p className="tiny muted" style={{ margin: '8px 0 0' }}>Daily targets from the plan stay as planned; a moved problem counts toward its new day.</p>
-          </Panel>
+          </Panel>}
           {rec.history.length > 0 && (
             <Panel title="History" flush>
               <ul className="item-list">{[...rec.history].reverse().map((h, i) => <li key={i} className="item small"><span>{STATUS_LABELS[h.status]}</span><span className="meta">{formatDate(h.date)}</span></li>)}</ul>

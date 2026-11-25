@@ -32,7 +32,7 @@ export function ProjectsPage() {
   );
 }
 
-function ProjectView({ project: p }: { project: ProjectBrief }) {
+export function ProjectView({ project: p }: { project: ProjectBrief }) {
   const progress = useProgress();
   const store = `project:${p.id}`;
   const notes = progress.projects[store] ?? {};

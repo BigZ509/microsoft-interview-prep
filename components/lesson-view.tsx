@@ -43,9 +43,11 @@ function useActiveSection(ids: string[]): string {
   return active;
 }
 
-export function LessonView({ module, lesson, lessonKey, prev, next }: {
+export function LessonView({ module, lesson, lessonKey, prev, next, embedded = false }: {
   module: Pick<Module, 'id' | 'number' | 'title' | 'phase'>; lesson: Lesson; lessonKey: string;
   prev?: { href: string; title: string }; next?: { href: string; title: string };
+  /** Inside the bootcamp player: no lesson-to-lesson pager (the player provides navigation). */
+  embedded?: boolean;
 }) {
   const progress = useProgress();
   const today = useToday() ?? toDateKey(new Date());
@@ -149,10 +151,12 @@ export function LessonView({ module, lesson, lessonKey, prev, next }: {
           )}
         </section>
 
-        <nav className="pager" aria-label="Lesson navigation">
-          {prev ? <Link href={prev.href}><small>← Previous</small>{prev.title}</Link> : <span />}
-          {next ? <Link className="next" href={next.href}><small>Next →</small>{next.title}</Link> : <Link className="next" href="/learn"><small>Done</small>All modules</Link>}
-        </nav>
+        {!embedded && (
+          <nav className="pager" aria-label="Lesson navigation">
+            {prev ? <Link href={prev.href}><small>← Previous</small>{prev.title}</Link> : <span />}
+            {next ? <Link className="next" href={next.href}><small>Next →</small>{next.title}</Link> : <Link className="next" href="/learn"><small>Done</small>All modules</Link>}
+          </nav>
+        )}
       </article>
       <nav className="lesson-toc" aria-label="On this page">
         <div className="toc-title">On this page</div>

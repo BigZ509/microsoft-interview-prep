@@ -85,6 +85,33 @@ export function Dictionary() {
   );
 }
 
+/** Compact term card for the bootcamp player: the same facts and knowledge check, under an h2. */
+export function TermStudy({ id }: { id: string }) {
+  const progress = useProgress();
+  const today = useToday() ?? toDateKey(new Date());
+  const t = getTerm(id)!;
+  const reviewed = progress.terms[t.id] || progress.checks[`term:${t.id}`];
+  return (
+    <section className="card term-study" aria-labelledby={`term-${t.id}`}>
+      <div className="spread">
+        <h2 id={`term-${t.id}`} style={{ margin: 0 }}>{t.term}</h2>
+        <button className={`btn small${reviewed ? ' primary' : ''}`} onClick={() => update((p) => markTermReviewed(p, t.id, today))}>
+          <CheckCircle2 size={15} /> {reviewed ? 'Reviewed' : 'Mark as reviewed'}
+        </button>
+      </div>
+      <p className="term-definition"><Inline text={t.definition} /></p>
+      <div className="fact-grid">
+        <div className="fact"><div className="k">Example</div><Inline text={t.example} /></div>
+        <div className="fact"><div className="k">What the wording suggests</div><Inline text={t.implies} /></div>
+        <div className="fact decide wide"><div className="k">Check before choosing</div><Inline text={t.decide} /></div>
+        <div className="fact warn"><div className="k">Common misconception</div><Inline text={t.misconception} /></div>
+        <div className="fact"><div className="k">Typical complexity</div><Inline text={t.complexity} /></div>
+      </div>
+      <KnowledgeCheck check={t.check} storageKey={`term:${t.id}`} />
+    </section>
+  );
+}
+
 export function TermDetail({ id }: { id: string }) {
   const progress = useProgress();
   const today = useToday() ?? toDateKey(new Date());

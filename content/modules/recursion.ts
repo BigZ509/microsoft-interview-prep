@@ -96,6 +96,133 @@ assert sys.getrecursionlimit() >= 1000   # deep recursion can hit this limit
       verbal: "\"My base case is the empty input; otherwise I solve the smaller problem recursively and combine. There are n calls with O(1) work each, so O(n) time and O(n) stack space.\"",
     },
     {
+      id: 'call-stack',
+      title: 'Tracing the call stack: frames, waiting work, and returning results',
+      summary: 'Trace recursion frame by frame: what each call is waiting for, when it returns, and how its result is combined by the caller.',
+      what: "Every call to a function creates a **frame**: a box holding that call's own parameters, local variables, and the place to resume when a call it made returns. Frames live on the **call stack**: a new call is **pushed** on top; when a call returns, its frame is **popped** and its return value is handed to the frame underneath.\n\nThe key to reading recursion is the **waiting work**. In `return n * factorial(n - 1)`, the frame for `n` cannot multiply until the inner call returns. So the stack fills up with frames that are all paused at the same line, each waiting for one answer. Then the base case returns, and the waiting frames finish one by one, **in reverse order**.\n\nFor a tree, a frame may make two calls (left, then right). It waits for the left result, then makes the right call, then combines both: `1 + max(left, right)`.",
+      why: "Most recursion bugs come from not knowing what happens after the recursive call returns: forgetting `return`, combining in the wrong place, or not trusting the smaller call. Tracing frames by hand, on paper or out loud, makes the hidden pause-and-resume visible. Interviewers often ask you to walk through your recursive solution on a small example, and they ask for its space complexity, which is exactly the deepest stack.",
+      how: [
+        "Write one line saying what the function returns, e.g. \"max_depth(node) = number of nodes on the longest path from node down to a leaf\".",
+        "Start a column of frames. For each call, write the parameters and the line it is paused on (\"waiting: 3 × ?\").",
+        "Push a frame for every new call. Do not compute anything in the caller until its call returns.",
+        "At the base case, write the return value and pop the frame. Hand that value to the frame below and fill in its \"?\".",
+        "A frame with two recursive calls resumes after the first, then pushes the second; it returns only when both answers are known.",
+        "The largest number of frames at one moment is the stack space: O(n) for factorial, O(h) for a tree of height h.",
+      ],
+      visual: {
+        kind: 'stack',
+        title: 'Frames for factorial(3), then max_depth on the tree A(B(D), C)',
+        steps: [
+          { items: ['factorial(3) · waiting: 3 × ?'], note: 'Call factorial(3). Not the base case, so it pauses at `3 * factorial(2)`.' },
+          { items: ['factorial(3) · waiting: 3 × ?', 'factorial(2) · waiting: 2 × ?'], note: 'Push a frame for factorial(2). It also pauses, waiting for factorial(1).' },
+          { items: ['factorial(3) · waiting: 3 × ?', 'factorial(2) · waiting: 2 × ?', 'factorial(1) · waiting: 1 × ?'], note: 'Push factorial(1), paused waiting for factorial(0).' },
+          { items: ['factorial(3) · waiting: 3 × ?', 'factorial(2) · waiting: 2 × ?', 'factorial(1) · waiting: 1 × ?', 'factorial(0) · base case'], vars: { depth: '4 frames' }, note: 'factorial(0) is the base case: it returns 1 without calling anything. This is the deepest point, 4 frames, so stack space is O(n).' },
+          { items: ['factorial(3) · waiting: 3 × ?', 'factorial(2) · waiting: 2 × ?', 'factorial(1) · 1 × 1'], vars: { returned: 'factorial(0) → 1' }, note: 'Pop factorial(0). Its 1 fills the "?" in factorial(1), which can now compute 1 × 1 = 1.' },
+          { items: ['factorial(3) · waiting: 3 × ?', 'factorial(2) · 2 × 1'], vars: { returned: 'factorial(1) → 1' }, note: 'Pop factorial(1). factorial(2) resumes and computes 2 × 1 = 2.' },
+          { items: ['factorial(3) · 3 × 2'], vars: { returned: 'factorial(2) → 2' }, note: 'Pop factorial(2). factorial(3) resumes: 3 × 2 = 6.' },
+          { items: [], vars: { returned: 'factorial(3) → 6' }, note: 'Stack empty. The frames finished in the reverse of the order they started.' },
+          { items: ['depth(A) · waiting: left = ?'], note: 'Now a tree: A has children B and C; B has one child D. depth(A) first calls depth(B) for the left subtree.' },
+          { items: ['depth(A) · waiting: left = ?', 'depth(B) · waiting: left = ?'], note: 'depth(B) pauses on its own left call, depth(D).' },
+          { items: ['depth(A) · waiting: left = ?', 'depth(B) · waiting: left = ?', 'depth(D) · waiting: left = ?'], note: 'depth(D) calls depth(None) for its missing left child.' },
+          { items: ['depth(A) · waiting: left = ?', 'depth(B) · waiting: left = ?', 'depth(D) · waiting: left = ?', 'depth(None) · base case'], vars: { depth: '4 frames = h + 1' }, note: 'Base case: an empty subtree has depth 0. The deepest point is 4 frames for a tree of height 3, so space is O(h).' },
+          { items: ['depth(A) · waiting: left = ?', 'depth(B) · waiting: left = ?', 'depth(D) · left = 0, right = 0'], vars: { returned: 'depth(None) → 0' }, note: 'D gets left = 0, then calls depth(None) on the right, which also returns 0. D returns 1 + max(0, 0) = 1.' },
+          { items: ['depth(A) · waiting: left = ?', 'depth(B) · left = 1, right = 0'], vars: { returned: 'depth(D) → 1' }, note: 'B resumes with left = 1. Its right child is None → 0. B returns 1 + max(1, 0) = 2.' },
+          { items: ['depth(A) · left = 2, waiting: right = ?'], vars: { returned: 'depth(B) → 2' }, note: 'A resumes with left = 2. Only now does it make its second call: depth(C).' },
+          { items: ['depth(A) · left = 2, waiting: right = ?', 'depth(C) · left = 0, right = 0'], note: 'C is a leaf: both child calls return 0 immediately, so C returns 1.' },
+          { items: ['depth(A) · left = 2, right = 1'], vars: { returned: 'depth(C) → 1' }, note: 'A has both answers and returns 1 + max(2, 1) = 3.' },
+          { items: [], vars: { returned: 'depth(A) → 3' }, note: 'Done. Each node got exactly one frame (O(n) time); at most h + 1 frames existed at once (O(h) space).' },
+        ],
+      },
+      code: py`
+def factorial(n):
+    if n == 0:                    # base case: answer known directly
+        return 1
+    return n * factorial(n - 1)   # waits for the smaller answer, then multiplies
+
+assert factorial(3) == 6 and factorial(0) == 1
+
+
+def traced_factorial(n, log):
+    """Same function, but records every push (call) and pop (return)."""
+    log.append(f"call {n}")
+    result = 1 if n == 0 else n * traced_factorial(n - 1, log)
+    log.append(f"return {n} -> {result}")
+    return result
+
+log = []
+assert traced_factorial(3, log) == 6
+assert log == ["call 3", "call 2", "call 1", "call 0",
+               "return 0 -> 1", "return 1 -> 1", "return 2 -> 2", "return 3 -> 6"]
+
+
+class Node:
+    def __init__(self, val, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+
+def max_depth(node):
+    if node is None:              # base case: empty subtree
+        return 0
+    left = max_depth(node.left)   # pause until the whole left subtree is measured
+    right = max_depth(node.right) # then measure the right subtree
+    return 1 + max(left, right)   # combine both results
+
+
+tree = Node("A", Node("B", Node("D")), Node("C"))
+assert max_depth(tree) == 3
+assert max_depth(None) == 0 and max_depth(Node("x")) == 1
+
+
+def traced_depth(node, log, level=0):
+    """Records the order frames finish, so you can check a hand trace."""
+    if node is None:
+        return 0
+    d = 1 + max(traced_depth(node.left, log, level + 1), traced_depth(node.right, log, level + 1))
+    log.append((node.val, d))
+    return d
+
+order = []
+traced_depth(tree, order)
+assert order == [("D", 1), ("B", 2), ("C", 1), ("A", 3)]   # children finish before parents
+`,
+      codeNotes: [
+        "`traced_factorial` returns the same value as `factorial`; the log shows that every call is pushed before any call returns.",
+        "`left = max_depth(node.left)` on its own line makes the pause visible: the next line runs only after the entire left subtree has been measured.",
+        "In `traced_depth`, the log order D, B, C, A is postorder: a node finishes only after both children have finished.",
+      ],
+      complexity: {
+        time: 'factorial O(n); max_depth O(n) for n nodes',
+        space: 'factorial O(n) stack; max_depth O(h) stack, h = height (O(n) worst case for a chain, O(log n) balanced)',
+        derivation: [
+          "factorial(n) creates frames for n, n-1, …, 0: n + 1 calls with O(1) work each → O(n) time.",
+          "All those frames exist at the same moment (just before the base case returns) → O(n) space.",
+          "max_depth makes one frame per node plus one per empty child (at most 2n + 1 calls), each O(1) → O(n) time.",
+          "Only one root-to-leaf path of frames is on the stack at a time → O(h) space, where h is the tree height.",
+        ],
+      },
+      whenToUse: [
+        "Before coding any recursive solution: trace a 3-node example to check the base case and the combine step.",
+        "When asked for the space complexity of recursion: count the deepest stack of frames, not the total number of calls.",
+        "When a recursive answer is wrong: write the frames down and look for a frame that returns before it has combined its children's results.",
+      ],
+      mistakes: [
+        "Calling `max_depth(node.left)` without using or returning its value: the result is lost when the frame pops.",
+        "Counting total calls as the space cost: frames that already returned no longer use stack memory.",
+        "Thinking the right subtree runs at the same time as the left: Python finishes the left call completely first.",
+        "Base case that returns the wrong unit (e.g. returning 1 for an empty tree), which shifts every answer by one.",
+      ],
+      checks: [
+        { q: "In factorial(3), which frame computes its multiplication first?", options: ['factorial(3)', 'factorial(2)', 'factorial(1)', 'They all multiply at once'], answer: 2, explain: "factorial(0) returns 1 without multiplying; factorial(1) is the first frame to resume and compute 1 × 1. Frames finish in reverse order of their calls." },
+        { q: "For the tree A(B(D), C), what is the most frames on the stack at once during max_depth?", options: ['2', '3', '4', '7'], answer: 2, explain: "depth(A) → depth(B) → depth(D) → depth(None): 4 frames, which is height + 1. That is why space is O(h)." },
+        { q: "When does depth(A) call depth(C)?", options: ['Before depth(B)', 'At the same time as depth(B)', 'After depth(B) has returned', 'Never'], answer: 2, explain: "The line `left = max_depth(node.left)` must finish before `right = max_depth(node.right)` starts." },
+      ],
+      problems: [104, 226, 100],
+      terms: ['recursion', 'base-case', 'depth', 'height'],
+      verbal: "\"Let me trace it on a small tree. depth(A) calls depth(B), which calls depth(D); the empty children return 0, so D returns 1, B returns 2, C returns 1, and A returns 1 + max(2, 1) = 3. At most h + 1 frames are on the stack, so space is O(h), and each node is visited once, so time is O(n).\"",
+    },
+    {
       id: 'backtracking',
       title: 'Recursion trees, decision trees, backtracking, state and choices',
       summary: 'Explore every sequence of choices by choosing, recursing, and un-choosing.',

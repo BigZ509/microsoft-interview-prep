@@ -100,7 +100,11 @@ const FIELDS: { id: string; title: string; prompt: string; mono?: boolean }[] = 
   { id: 'tests', title: 'Trace and test', prompt: 'Trace one example. List edge cases and what your code returns for each.' },
 ];
 
-export function BlindSession({ id }: { id: string }) {
+/**
+ * `concealSource` (bootcamp) hides the evidence label until the reveal, so neither the pattern, the
+ * difficulty nor the source is disclosed before an attempt.
+ */
+export function BlindSession({ id, concealSource = false }: { id: string; concealSource?: boolean }) {
   const today = useToday();
   const hydrated = useHydrated();
   const progress = useProgress();
@@ -131,7 +135,7 @@ export function BlindSession({ id }: { id: string }) {
       <div className="lab">
         <div className="lab-code stack">
           <Panel title="The question">
-            {item.evidence && <span className="badge accent" style={{ marginBottom: 'var(--s3)' }}>{EVIDENCE_BADGE[item.evidence]}</span>}
+            {item.evidence && (!concealSource || rec.revealed) && <span className="badge accent" style={{ marginBottom: 'var(--s3)' }}>{EVIDENCE_BADGE[item.evidence]}</span>}
             <p>{item.statement}</p>
             <div className="exercise-label">Examples</div>
             <ul className="small">{item.examples.map((e) => <li key={e}><code>{e}</code></li>)}</ul>

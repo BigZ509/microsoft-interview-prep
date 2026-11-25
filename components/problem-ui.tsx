@@ -6,9 +6,10 @@ import type { Problem } from '@/content/types';
 import { leetCodeUrl } from '@/content/problems';
 import { formatDate, toDateKey } from '@/lib/dates';
 import {
-  PROBLEM_STATUSES, STATUS_LABELS, effectiveDate, everCompleted, isMastered, problemRecord, setProblemStatus,
-  type ProblemStatus, type Progress,
+  PROBLEM_STATUSES, RETENTION_LABELS, RETENTION_LEVELS, STATUS_LABELS, effectiveDate, everCompleted, isMastered, problemRecord, retentionReached,
+  setProblemStatus, type ProblemStatus, type Progress,
 } from '@/lib/progress';
+import { getProblem } from '@/content/problems';
 import { update, useToday } from '@/lib/store';
 import { DifficultyBadge } from './ui';
 
@@ -18,7 +19,7 @@ export function statusTone(status: ProblemStatus): string {
 
 export function StatusBadge({ progress, id }: { progress: Progress; id: number }) {
   const rec = problemRecord(progress, id);
-  if (isMastered(rec)) return <span className="status good">Mastered</span>;
+  if (isMastered(rec)) return <span className="status good" title="Solved independently on two different days">Retained</span>;
   return <span className={`status ${statusTone(rec.status)}`}>{STATUS_LABELS[rec.status]}</span>;
 }
 
@@ -38,6 +39,25 @@ export function StatusPicker({ id, progress }: { id: number; progress: Progress 
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * The five levels: read the lessons → attempted → solved with help → solved independently → retained
+ * (independent on two different days). Viewing hints never moves a problem up the ladder.
+ */
+export function RetentionLadder({ id, progress }: { id: number; progress: Progress }) {
+  const p = getProblem(id);
+  const reached = retentionReached(problemRecord(progress, id), !!p && p.prereqs.every((k) => progress.lessons[k]?.done));
+  return (
+    <ol className="ladder" aria-label="Learning progress for this problem">
+      {RETENTION_LEVELS.map((level) => (
+        <li key={level} className={reached[level] ? 'on' : ''}>
+          <span className="ladder-dot" aria-hidden="true">{reached[level] ? '✓' : ''}</span>
+          {RETENTION_LABELS[level]}<span className="sr-only">{reached[level] ? ' (reached)' : ' (not yet)'}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

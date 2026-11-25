@@ -88,7 +88,7 @@ function Result({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
-export function DrillRunner({ id }: { id: string }) {
+export function DrillRunner({ id, embedded = false }: { id: string; embedded?: boolean }) {
   const index = drills.findIndex((d) => d.id === id);
   const d = drills[index];
   const next = drills[index + 1];
@@ -119,7 +119,7 @@ export function DrillRunner({ id }: { id: string }) {
       <PageHeader
         eyebrow={<><Link href="/big-o">Big-O Lab</Link> · Drill {index + 1} of {drills.length}</>}
         title={d.title}
-        actions={<>
+        actions={embedded ? undefined : <>
           {prevDrill && <Link className="btn small ghost" href={`/big-o/${prevDrill.id}`}>← Previous</Link>}
           {next && <Link className="btn small ghost" href={`/big-o/${next.id}`}>Skip →</Link>}
         </>}
@@ -198,7 +198,7 @@ export function DrillRunner({ id }: { id: string }) {
           {problem && <><div className="exercise-label">Where this shows up</div><ul className="item-list"><ProblemItem problem={problem} progress={progress} /></ul></>}
           <div className="row" style={{ marginTop: 'var(--s4)' }}>
             <button className="btn" onClick={reset}>Try again</button>
-            {next ? <Link className="btn primary" href={`/big-o/${next.id}`}>Next drill: {next.title} <ArrowRight size={14} /></Link> : <Link className="btn primary" href="/big-o">Back to all drills</Link>}
+            {!embedded && (next ? <Link className="btn primary" href={`/big-o/${next.id}`}>Next drill: {next.title} <ArrowRight size={14} /></Link> : <Link className="btn primary" href="/big-o">Back to all drills</Link>)}
           </div>
         </Panel>
       )}

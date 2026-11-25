@@ -1,5 +1,5 @@
-import { Dashboard } from '@/components/dashboard';
+import { BootcampHome } from '@/components/bootcamp-home';
 
 export default function Home() {
-  return <Dashboard />;
+  return <BootcampHome />;
 }

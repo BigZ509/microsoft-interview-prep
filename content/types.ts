@@ -280,10 +280,14 @@ export type Problem = {
   /** Short, original hint ladder (no solutions). */
   hints: string[];
   candidateReport?: string;
-  /** 'plan' = imported from the original study-plan file; 'colorstack' = added from the ColorStack research. */
-  origin?: 'plan' | 'colorstack';
+  /**
+   * 'plan' = imported from the original study-plan file; 'colorstack' = added from the ColorStack research;
+   * 'bootcamp' = requested by the learner in the seven-day bootcamp plan (sources/seven-day-bootcamp-request.md).
+   * Bootcamp additions are not interview evidence, so they carry no `evidence`.
+   */
+  origin?: 'plan' | 'colorstack' | 'bootcamp';
   evidence?: Evidence[];
-  /** Why a plan problem was made optional under the Nov 25 scope correction (secondary topic / advanced). */
+  /** Why a problem was made optional (scope correction or bootcamp: secondary topic, reinforcement, advanced). */
   demoted?: string;
 };
 
